@@ -1,0 +1,45 @@
+-- DATABASE
+CREATE DATABASE IF NOT EXISTS data_workbench;
+USE data_workbench;
+
+create table enginemapsource(
+	enginetype varchar(16),
+	sourcetype varchar(256)
+) ENGINE=InnoDB;
+
+insert into enginemapsource values('Flink', 'MySQL,PostgreSQL,Kafka');
+alter table enginemapsource add constraint enginemapsource_pkey primary key(enginetype);
+
+-- sourceManagerTable
+create table sourcemanager(
+	id varchar(24),
+	spaceid varchar(24) not null,
+	sourcetype varchar(16),
+	name varchar(64) not null,
+	comment varchar(256),
+	creator varchar(16),
+	url varchar(2000),
+	createtime timestamp default now(),
+	updatetime timestamp,
+	enginetype varchar(16)
+) ENGINE=InnoDB;
+alter table sourcemanager add constraint sourcemanager_pkey primary key(id);
+create unique index sourcemanager_unique ON  sourcemanager (spaceid, name);
+alter table sourcemanager add CONSTRAINT sourcemanager_chk_type check(sourcetype = 'MySQL' or sourcetype = "PostgreSQL" or sourcetype = "Kafka");
+alter table sourcemanager add constraint sourcemanager_chk_crt check (creator = 'workbench' or creator = 'custom');
+
+-- tableManagerTable
+create table sourcetables(
+	id varchar(24),
+	sourceid varchar(24) not null, 
+	tabtype char,
+	name varchar(64) not null,
+	comment varchar(256),
+	url varchar(2000),
+	createtime timestamp default now(),
+	updatetime timestamp,
+	foreign key(sourceid) references sourcemanager(id)
+) ENGINE=InnoDB;
+alter table sourcetables add constraint sourcetables_pkey primary key(id);
+alter table sourcetables add constraint sourcetables_chk_ttyp check (tabtype = 'd' or tabtype = 'c');
+create unique index sourcetables_unique ON  sourcetables (sourceid, name);

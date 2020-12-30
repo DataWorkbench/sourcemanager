@@ -8,29 +8,16 @@ import (
 
 	"strings"
 
+	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/common/utils/idgenerator"
+	"github.com/DataWorkbench/glog"
 	"gorm.io/gorm"
 )
 
 const (
-	SourcemanagerIDPrefix = "som-"
-	SourceTablesIDPrefix  = "sot-"
-
 	SourcemanagerTableName = "sourcemanager"
 	SourceTablesName       = "sourcetables"
 	EngineMapTableName     = "enginemapsource"
-
-	SourceTypeMysql      = "MySQL"
-	SourceTypePostgreSQL = "PostgreSQL"
-	SourceTypeKafka      = "Kafka"
-
-	TableTypeDimension = "d"
-	TableTypeComment   = "c"
-
-	FlinkEngineName = "Flink"
-
-	CreatorWorkBench = "workbench" //can't drop by custom,  workbench is auto create when spark/other engine created
-	CreatorCustom    = "custom"
 )
 
 type EngineMapInfo struct {
@@ -74,65 +61,35 @@ type SourcemanagerExecutor struct {
 	db             *gorm.DB
 	idGenerator    *idgenerator.IDGenerator
 	idGeneratorSot *idgenerator.IDGenerator
+	logger         *glog.Logger
 }
 
-func NewSourceManagerExecutor(db *gorm.DB) *SourcemanagerExecutor {
+func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecutor {
 	ex := &SourcemanagerExecutor{
 		db:             db,
-		idGenerator:    idgenerator.New(SourcemanagerIDPrefix),
-		idGeneratorSot: idgenerator.New(SourceTablesIDPrefix),
+		idGenerator:    idgenerator.New(constants.SourceManagerIDPrefix),
+		idGeneratorSot: idgenerator.New(constants.SourceTablesIDPrefix),
+		logger:         l,
 	}
 	return ex
 }
 
 func checkSourcemanagerUrl(url string, enginetype string, sourcetype string) (err error) {
-	var (
-		ok     bool
-		mapUrl map[string]string
-	)
-
-	if err = json.Unmarshal([]byte(url), &mapUrl); err != nil {
-		return err
-	}
-
-	if enginetype == FlinkEngineName {
-		if sourcetype == SourceTypeMysql || sourcetype == SourceTypePostgreSQL {
-			if _, ok = mapUrl["user"]; ok == false {
-				err = fmt.Errorf("can't not find user")
-				return
+	if enginetype == constants.EngineTypeFlink {
+		if sourcetype == constants.SourceTypeMysql {
+			var v constants.SourceMysqlParams
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				return err
 			}
-			if _, ok = mapUrl["password"]; ok == false {
-				err = fmt.Errorf("can't not find password")
-				return
+		} else if sourcetype == constants.SourceTypePostgreSQL {
+			var v constants.SourcePostgreSQLParams
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				return err
 			}
-			if _, ok = mapUrl["host"]; ok == false {
-				err = fmt.Errorf("can't not find host")
-				return
-			}
-			if _, ok = mapUrl["port"]; ok == false {
-				err = fmt.Errorf("can't not find port")
-				return
-			}
-			if _, ok = mapUrl["database"]; ok == false {
-				err = fmt.Errorf("can't not find database")
-				return
-			}
-			if _, ok = mapUrl["connector_options"]; ok == false {
-				err = fmt.Errorf("can't not find connector_options")
-				return
-			}
-		} else if sourcetype == SourceTypeKafka {
-			if _, ok = mapUrl["host"]; ok == false {
-				err = fmt.Errorf("can't not find host")
-				return
-			}
-			if _, ok = mapUrl["port"]; ok == false {
-				err = fmt.Errorf("can't not find port")
-				return
-			}
-			if _, ok = mapUrl["connector_options"]; ok == false {
-				err = fmt.Errorf("can't not find connector_options")
-				return
+		} else if sourcetype == constants.SourceTypeKafka {
+			var v constants.SourceKafkaParams
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				return err
 			}
 		} else {
 			return fmt.Errorf("unknow source type %s", sourcetype)
@@ -201,57 +158,36 @@ func (ex *SourcemanagerExecutor) Describe(ctx context.Context, id string) (info 
 }
 
 func checkSourcetablesUrl(url string, enginetype string, sourcetype string) (err error) {
-	var (
-		ok           bool
-		tableUrlJson map[string]string
-	)
-
-	if err = json.Unmarshal([]byte(url), &tableUrlJson); err != nil {
-		return
-	}
-
-	if enginetype == FlinkEngineName {
-		if sourcetype == SourceTypeMysql || sourcetype == SourceTypePostgreSQL {
-			if _, ok = tableUrlJson["sqlColumn"]; ok == false {
-				err = fmt.Errorf("can't not find sqlColumn")
-				return
+	if enginetype == constants.EngineTypeFlink {
+		if sourcetype == constants.SourceTypeMysql {
+			var v constants.FlinkTableDefineMysql
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				return err
 			}
-			if _, ok = tableUrlJson["connector_options"]; ok == false {
-				err = fmt.Errorf("can't not find connector_options")
-				return
+		} else if sourcetype == constants.SourceTypePostgreSQL {
+			var v constants.FlinkTableDefinePostgreSQL
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				return err
 			}
-		} else if sourcetype == SourceTypeKafka {
-			if _, ok = tableUrlJson["sqlColumn"]; ok == false {
-				err = fmt.Errorf("can't not find sqlColumn")
-				return
-			}
-			if _, ok = tableUrlJson["topic"]; ok == false {
-				err = fmt.Errorf("can't not find topic")
-				return
-			}
-			if _, ok = tableUrlJson["format"]; ok == false {
-				err = fmt.Errorf("can't not find format")
-				return
-			}
-			if _, ok = tableUrlJson["connector_options"]; ok == false {
-				err = fmt.Errorf("can't not find connector_options")
-				return
+		} else if sourcetype == constants.SourceTypeKafka {
+			var v constants.FlinkTableDefineKafka
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				return err
 			}
 		} else {
-			err = fmt.Errorf("unknow sourcemanager %s", sourcetype)
-			return
+			return fmt.Errorf("unknow source type %s", sourcetype)
 		}
 	} else {
-		err = fmt.Errorf("unknow EngineType %s", enginetype)
-		return
+		return fmt.Errorf("unknow engine type %s", enginetype)
 	}
+
 	return nil
 }
 
 // Source Tables
 func (ex *SourcemanagerExecutor) SotCreate(ctx context.Context, info SourceTablesInfo) (err error) {
 	sourceInfo, _ := ex.Describe(ctx, info.SourceID)
-	if info.TabType == TableTypeDimension && sourceInfo.SourceType != SourceTypeMysql && sourceInfo.SourceType != SourceTypePostgreSQL {
+	if info.TabType == constants.TableTypeDimension && sourceInfo.SourceType != constants.SourceTypeMysql && sourceInfo.SourceType != constants.SourceTypePostgreSQL {
 		err = fmt.Errorf("can't create dimension in the sourcemanager %s", sourceInfo.SourceType)
 		return
 	}

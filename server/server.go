@@ -62,7 +62,7 @@ func Start() (err error) {
 		return
 	}
 	rpcServer.Register(func(s *grpc.Server) {
-		smpb.RegisterSourcemanagerServer(s, NewSourceManagerServer(executor.NewSourceManagerExecutor(db)))
+		smpb.RegisterSourcemanagerServer(s, NewSourceManagerServer(executor.NewSourceManagerExecutor(db, lp)))
 	})
 
 	// handle signal

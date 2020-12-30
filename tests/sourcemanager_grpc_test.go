@@ -2,12 +2,14 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/DataWorkbench/glog"
 	"github.com/stretchr/testify/require"
 
+	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/common/grpcwrap"
 	"github.com/DataWorkbench/common/utils/idgenerator"
 
@@ -19,6 +21,11 @@ var sotInfos []smpb.SotCreateRequest
 var client smpb.SourcemanagerClient
 var ctx context.Context
 
+func typeToJsonString(v interface{}) string {
+	s, _ := json.Marshal(&v)
+	return string(s)
+}
+
 func mainInit(t *testing.T) {
 	if len(infos) != 0 {
 		return
@@ -26,55 +33,55 @@ func mainInit(t *testing.T) {
 
 	// MySQL
 	infos = append(infos, smpb.CreateRequest{
-		ID: "som-0123456789012345", SpaceID: "wsp-0123456789012345", EngineType: "Flink", SourceType: "MySQL", Name: "mysql", Comment: "create ok", Creator: "workbench", Url: `{"user": "root","password": "123456", "host":"127.0.0.1", "port":"3306", "database":"data_workbench", "connector_options": ""}`})
+		ID: "som-0123456789012345", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})})
 	// PostgreSQL
 	infos = append(infos, smpb.CreateRequest{
-		ID: "som-0123456789012346", SpaceID: "wsp-0123456789012345", EngineType: "Flink", SourceType: "PostgreSQL", Name: "pg", Comment: "create ok", Creator: "custom", Url: `{"user": "lzzhang","password": "123456", "host":"127.0.0.1", "port":"5432", "database":"lzzhang", "connector_options": ""}`})
+		ID: "som-0123456789012346", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypePostgreSQL, Name: "pg", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourcePostgreSQLParams{User: "lzzhang", Password: "123456", Host: "127.0.0.1", Port: 5432, Database: "lzzhang"})})
 	// Kafka
 	infos = append(infos, smpb.CreateRequest{
-		ID: "som-0123456789012347", SpaceID: "wsp-0123456789012345", EngineType: "Flink", SourceType: "Kafka", Name: "kafka", Comment: "create ok", Creator: "custom", Url: `{"host":"127.0.0.1", "port":"9092", "connector_options": ""}`})
+		ID: "som-0123456789012347", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeKafka, Name: "kafka", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceKafkaParams{Host: "127.0.0.1", Port: 9092})})
 
 	// update/pingfailed -> comment : updateok
 	infos = append(infos, smpb.CreateRequest{
-		ID: "som-0123456789012348", SpaceID: "wsp-0123456789012346", EngineType: "Flink", SourceType: "MySQL", Name: "pingfailed", Comment: "create ok", Creator: "workbench", Url: `{"user": "failed","password": "123456", "host":"127.0.0.1", "port":"3306", "database":"data_workbench", "connector_options": ""}`})
+		ID: "som-0123456789012348", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "pingfailed", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "failed", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})})
 	// delete
 	infos = append(infos, smpb.CreateRequest{
-		ID: "som-0123456789012349", SpaceID: "wsp-0123456789012346", EngineType: "Flink", SourceType: "MySQL", Name: "mysql", Comment: "create ok", Creator: "workbench", Url: `{"user": "root","password": "123456", "host":"127.0.0.1", "port":"3306", "database":"data_workbench", "connector_options": ""}`})
+		ID: "som-0123456789012349", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})})
 	// create failed, name exist
 	infos = append(infos, smpb.CreateRequest{
-		ID: "som-0123456789012350", SpaceID: "wsp-0123456789012346", EngineType: "Flink", SourceType: "MySQL", Name: "mysql", Comment: "create failed", Creator: "workbench", Url: `{"user": "root","password": "123456", "host":"127.0.0.1", "port":"3306", "database":"data_workbench", "connector_options": ""}`})
+		ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})})
 	// create failed, can't use '.'
 	infos = append(infos, smpb.CreateRequest{
-		ID: "som-0123456789012350", SpaceID: "wsp-0123456789012346", EngineType: "Flink", SourceType: "MySQL", Name: "hello.world", Comment: "create failed", Creator: "workbench", Url: `{"user": "root","password": "123456", "host":"127.0.0.1", "port":"3306", "database":"data_workbench", "connector_options": ""}`})
+		ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "hello.world", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})})
 
 	// Source Tables
 	// pg
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012346", SourceID: "som-0123456789012346", Name: "pd", Comment: "from ms", Url: `{"sqlColumn": "(id bigint, id1 bigint)","connector_options": ""}`, TabType: "c"})
+		ID: "sot-0123456789012346", SourceID: "som-0123456789012346", Name: "pd", Comment: "from ms", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon})
 	// mysql
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012345", SourceID: "som-0123456789012345", Name: "ms", Comment: "to pg", Url: `{"sqlColumn": "(id bigint, id1 bigint)","connector_options": ""}`, TabType: "c"})
+		ID: "sot-0123456789012345", SourceID: "som-0123456789012345", Name: "ms", Comment: "to pg", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon})
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012347", SourceID: "som-0123456789012345", Name: "mw", Comment: "join dimension table", Url: `{"sqlColumn": "(rate bigint, dbmoney varchar(8)) ","connector_options": ""}`, TabType: "d"})
+		ID: "sot-0123456789012347", SourceID: "som-0123456789012345", Name: "mw", Comment: "join dimension table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeDimension})
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012348", SourceID: "som-0123456789012345", Name: "mwd", Comment: "join dimension table", Url: `{"sqlColumn": "(total bigint)",  "connector_options": ""}`, TabType: "c"})
+		ID: "sot-0123456789012348", SourceID: "som-0123456789012345", Name: "mwd", Comment: "join dimension table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}}), TabType: constants.TableTypeCommon})
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012349", SourceID: "som-0123456789012345", Name: "mc", Comment: "join common table", Url: `{"sqlColumn": "(rate bigint, dbmoney varchar(8))","connector_options": ""}`, TabType: "c"})
+		ID: "sot-0123456789012349", SourceID: "som-0123456789012345", Name: "mc", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeCommon})
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012350", SourceID: "som-0123456789012345", Name: "mcd", Comment: "join common table", Url: `{"sqlColumn": "(total bigint)", "connector_options": ""}`, TabType: "c"}) //'connector.write.flush.max-rows' = '1'
+		ID: "sot-0123456789012350", SourceID: "som-0123456789012345", Name: "mcd", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}}), TabType: constants.TableTypeCommon}) //'connector.write.flush.max-rows' = '1'
 	// kafka
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012351", SourceID: "som-0123456789012347", Name: "billing", Comment: "Kafka", Url: `{"sqlColumn": "(paycount bigint, paymoney string, tproctime AS PROCTIME())", "topic": "workbench","groupid": "workbench", "format":"json", "connector_options": " 'json.fail-on-missing-field' = 'false', 'json.ignore-parse-errors' = 'true' "}`, TabType: "c"}) //{"paycount": 2, "paymoney": "EUR"} {"paycount": 1, "paymoney": "USD"}
+		ID: "sot-0123456789012351", SourceID: "som-0123456789012347", Name: "billing", Comment: "Kafka", Url: typeToJsonString(constants.FlinkTableDefineKafka{SqlColumn: []string{"paycount bigint", "paymoney string", "tproctime AS PROCTIME()"}, Topic: "workbench", Format: "json", ConnectorOptions: []string{"'json.fail-on-missing-field' = 'false'", "'json.ignore-parse-errors' = 'true'"}}), TabType: constants.TableTypeCommon}) //{"paycount": 2, "paymoney": "EUR"} {"paycount": 1, "paymoney": "USD"}
 
 	// update -> comment:update
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012352", SourceID: "som-0123456789012345", Name: "toupd", Comment: "join common table", Url: `{"sqlColumn": "(rate bigint, dbmoney varchar(8))","connector_options": ""}`, TabType: "c"})
+		ID: "sot-0123456789012352", SourceID: "som-0123456789012345", Name: "toupd", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeCommon})
 	// delete
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012353", SourceID: "som-0123456789012345", Name: "todel", Comment: "join common table", Url: `{"sqlColumn": "(rate bigint, dbmoney varchar(8))","connector_options": ""}`, TabType: "c"})
+		ID: "sot-0123456789012353", SourceID: "som-0123456789012345", Name: "todel", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeCommon})
 	// create failed: name exists
 	sotInfos = append(sotInfos, smpb.SotCreateRequest{
-		ID: "sot-0123456789012354", SourceID: "som-0123456789012345", Name: "toupd", Comment: "join common table", Url: `{"sqlColumn": "(rate bigint, dbmoney varchar(8))","connector_options": ""}`, TabType: "c"})
+		ID: "sot-0123456789012354", SourceID: "som-0123456789012345", Name: "toupd", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeCommon})
 
 	address := "127.0.0.1:50001"
 	lp := glog.NewDefault()

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/DataWorkbench/common/constants"
 	"github.com/Shopify/sarama"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -13,18 +14,15 @@ import (
 )
 
 func PingMysql(url string) (err error) {
-	var mapUrl map[string]string
-	if err = json.Unmarshal([]byte(url), &mapUrl); err != nil {
+	var m constants.SourceMysqlParams
+
+	if err = json.Unmarshal([]byte(url), &m); err != nil {
 		return err
-	}
-	if _, ok := mapUrl["connector_options"]; ok == false {
-		err = fmt.Errorf("can't not find connector_options")
-		return
 	}
 
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		mapUrl["user"], mapUrl["password"], mapUrl["host"], mapUrl["port"], mapUrl["database"],
+		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		m.User, m.Password, m.Host, m.Port, m.Database,
 	)
 
 	var db *gorm.DB
@@ -39,18 +37,15 @@ func PingMysql(url string) (err error) {
 }
 
 func PingPostgreSQL(url string) (err error) {
-	var mapUrl map[string]string
-	if err = json.Unmarshal([]byte(url), &mapUrl); err != nil {
+	var p constants.SourcePostgreSQLParams
+
+	if err = json.Unmarshal([]byte(url), &p); err != nil {
 		return err
-	}
-	if _, ok := mapUrl["connector_options"]; ok == false {
-		err = fmt.Errorf("can't not find connector_options")
-		return
 	}
 
 	dsn := fmt.Sprintf(
-		"user=%s password=%s host=%s port=%s  dbname=%s ",
-		mapUrl["user"], mapUrl["password"], mapUrl["host"], mapUrl["port"], mapUrl["database"],
+		"user=%s password=%s host=%s port=%d  dbname=%s ",
+		p.User, p.Password, p.Host, p.Port, p.Database,
 	)
 
 	var db *gorm.DB
@@ -65,17 +60,13 @@ func PingPostgreSQL(url string) (err error) {
 }
 
 func PingKafka(url string) (err error) {
-	var mapUrl map[string]string
-	if err = json.Unmarshal([]byte(url), &mapUrl); err != nil {
+	var k constants.SourceKafkaParams
+
+	if err = json.Unmarshal([]byte(url), &k); err != nil {
 		return err
 	}
 
-	if _, ok := mapUrl["connector_options"]; ok == false {
-		err = fmt.Errorf("can't not find connector_options")
-		return
-	}
-
-	dsn := fmt.Sprintf("%s:%s", mapUrl["host"], mapUrl["port"])
+	dsn := fmt.Sprintf("%s:%d", k.Host, k.Port)
 
 	consumer, terr := sarama.NewConsumer([]string{dsn}, nil)
 	if terr != nil {
@@ -91,11 +82,11 @@ func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype stri
 		return
 	}
 
-	if sourcetype == SourceTypeMysql {
+	if sourcetype == constants.SourceTypeMysql {
 		return PingMysql(url)
-	} else if sourcetype == SourceTypePostgreSQL {
+	} else if sourcetype == constants.SourceTypePostgreSQL {
 		return PingPostgreSQL(url)
-	} else if sourcetype == SourceTypeKafka {
+	} else if sourcetype == constants.SourceTypeKafka {
 		return PingKafka(url)
 	} else {
 		return fmt.Errorf("unknow source type %s", sourcetype)

@@ -143,10 +143,10 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string) (err err
 	return
 }
 
-func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset int32) (infos []*SourcemanagerInfo, err error) {
+func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset int32, spaceid string) (infos []*SourcemanagerInfo, err error) {
 	db := ex.db.WithContext(ctx)
 
-	err = db.Table(SourcemanagerTableName).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
+	err = db.Table(SourcemanagerTableName).Where("spaceid = ? ", spaceid).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
 	return
 }
 

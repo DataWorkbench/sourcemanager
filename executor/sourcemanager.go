@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/DataWorkbench/common/constants"
+	"github.com/DataWorkbench/common/qerror"
 	"github.com/DataWorkbench/common/utils/idgenerator"
 	"github.com/DataWorkbench/glog"
 	"gorm.io/gorm"
@@ -74,41 +75,94 @@ func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecuto
 	return ex
 }
 
-func checkSourcemanagerUrl(url string, enginetype string, sourcetype string) (err error) {
+func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url string, enginetype string, sourcetype string) (err error) {
 	if enginetype == constants.EngineTypeFlink {
 		if sourcetype == constants.SourceTypeMysql {
 			var v constants.SourceMysqlParams
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
-				return err
+				ex.logger.Error().Error("check source mysql url", err).Fire()
+				err = qerror.InvalidJSON
+				return
 			}
 		} else if sourcetype == constants.SourceTypePostgreSQL {
 			var v constants.SourcePostgreSQLParams
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
-				return err
+				ex.logger.Error().Error("check source postgresql url", err).Fire()
+				err = qerror.InvalidJSON
+				return
 			}
 		} else if sourcetype == constants.SourceTypeKafka {
 			var v constants.SourceKafkaParams
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
-				return err
+				ex.logger.Error().Error("check source kafka url", err).Fire()
+				err = qerror.InvalidJSON
+				return
 			}
 		} else {
-			return fmt.Errorf("unknow source type %s", sourcetype)
+			ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
+			err = qerror.NotSupportSourceType.Format(sourcetype)
+			return
 		}
 	} else {
-		return fmt.Errorf("unknow engine type %s", enginetype)
+		ex.logger.Error().Error("not support engine type", fmt.Errorf("unknow engine type %s", enginetype)).Fire()
+		err = qerror.NotSupportEngineType.Format(enginetype)
+		return
 	}
 
 	return nil
 }
 
+func (ex *SourcemanagerExecutor) CheckSourceExists(ctx context.Context, spaceid string, name string) (r bool) {
+	var infos []*SourcemanagerInfo
+
+	db := ex.db.WithContext(ctx)
+
+	err := db.Table(SourcemanagerTableName).Where("spaceid = ? and name = ? ", spaceid, name).Scan(&infos).Error
+	if err != nil {
+		r = false
+	} else {
+		if len(infos) > 0 {
+			r = true
+		} else {
+			r = false
+		}
+	}
+	return
+}
+
+func (ex *SourcemanagerExecutor) CheckSourceTableExists(ctx context.Context, sourceid string, name string) (r bool) {
+	var infos []*SourceTablesInfo
+
+	db := ex.db.WithContext(ctx)
+
+	err := db.Table(SourceTablesName).Where("sourceid = ? and name = ? ", sourceid, name).Scan(&infos).Error
+	if err != nil {
+		r = false
+	} else {
+		if len(infos) > 0 {
+			r = true
+		} else {
+			r = false
+		}
+	}
+	return
+}
+
 // SourceManager
 func (ex *SourcemanagerExecutor) Create(ctx context.Context, info SourcemanagerInfo) (err error) {
 	if len(strings.Split(info.Name, ".")) != 1 {
-		err = fmt.Errorf("can't use '.' in name")
+		ex.logger.Error().Error("invalid name", fmt.Errorf("can't use '.' in name")).Fire()
+		err = qerror.InvalidSourceName
 		return
 	}
 
-	if err = checkSourcemanagerUrl(info.Url, info.EngineType, info.SourceType); err != nil {
+	if err = ex.checkSourcemanagerUrl(info.Url, info.EngineType, info.SourceType); err != nil {
+		return
+	}
+
+	if ex.CheckSourceExists(ctx, info.SpaceID, info.Name) == true {
+		ex.logger.Error().Error("name exist", fmt.Errorf("this name %s is exists", info.Name)).Fire()
+		err = qerror.ResourceAlreadyExists
 		return
 	}
 
@@ -120,12 +174,28 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, info SourcemanagerI
 
 	db := ex.db.WithContext(ctx)
 	err = db.Create(info).Error
+	if err != nil {
+		ex.logger.Error().Error("create source", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
 func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerInfo) (err error) {
+	if len(strings.Split(info.Name, ".")) != 1 {
+		ex.logger.Error().Error("invalid name", fmt.Errorf("can't use '.' in name")).Fire()
+		err = qerror.InvalidSourceName
+		return
+	}
+
 	descInfo, _ := ex.Describe(ctx, info.ID)
-	if err = checkSourcemanagerUrl(info.Url, descInfo.EngineType, info.SourceType); err != nil {
+	if err = ex.checkSourcemanagerUrl(info.Url, descInfo.EngineType, info.SourceType); err != nil {
+		return
+	}
+
+	if ex.CheckSourceExists(ctx, info.SpaceID, info.Name) == true {
+		ex.logger.Error().Error("name exist", fmt.Errorf("this name %s is exists", info.Name)).Fire()
+		err = qerror.ResourceAlreadyExists
 		return
 	}
 
@@ -133,13 +203,27 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerI
 
 	db := ex.db.WithContext(ctx)
 	err = db.Select("sourcetype", "name", "comment", "url", "updatetime").Where("id = ? ", info.ID).Updates(info).Error
+	if err != nil {
+		ex.logger.Error().Error("update source", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
 func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string) (err error) {
+	tables, _ := ex.SotLists(ctx, id, 100, 0)
+	if len(tables) > 0 {
+		err = qerror.ResourceIsUsing
+		return
+	}
+
 	db := ex.db.WithContext(ctx)
 
 	err = db.Where("id = ? ", id).Delete(&SourcemanagerInfo{}).Error
+	if err != nil {
+		ex.logger.Error().Error("delete source", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
@@ -147,6 +231,10 @@ func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset 
 	db := ex.db.WithContext(ctx)
 
 	err = db.Table(SourcemanagerTableName).Where("spaceid = ? ", spaceid).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
+	if err != nil {
+		ex.logger.Error().Error("list source", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
@@ -154,31 +242,45 @@ func (ex *SourcemanagerExecutor) Describe(ctx context.Context, id string) (info 
 	db := ex.db.WithContext(ctx)
 
 	err = db.Table(SourcemanagerTableName).Where("id = ? ", id).Scan(&info).Error
+	if err != nil {
+		ex.logger.Error().Error("describe source", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
-func checkSourcetablesUrl(url string, enginetype string, sourcetype string) (err error) {
+func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url string, enginetype string, sourcetype string) (err error) {
 	if enginetype == constants.EngineTypeFlink {
 		if sourcetype == constants.SourceTypeMysql {
 			var v constants.FlinkTableDefineMysql
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
-				return err
+				ex.logger.Error().Error("check source mysql define url", err).Fire()
+				err = qerror.InvalidJSON
+				return
 			}
 		} else if sourcetype == constants.SourceTypePostgreSQL {
 			var v constants.FlinkTableDefinePostgreSQL
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
-				return err
+				ex.logger.Error().Error("check source postgres define url", err).Fire()
+				err = qerror.InvalidJSON
+				return
 			}
 		} else if sourcetype == constants.SourceTypeKafka {
 			var v constants.FlinkTableDefineKafka
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source kafka define url", err).Fire()
+				err = qerror.InvalidJSON
 				return err
 			}
 		} else {
-			return fmt.Errorf("unknow source type %s", sourcetype)
+			ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
+			err = qerror.NotSupportSourceType.Format(sourcetype)
+			return
 		}
 	} else {
-		return fmt.Errorf("unknow engine type %s", enginetype)
+		ex.logger.Error().Error("not support engine type", fmt.Errorf("unknow engine type %s", enginetype)).Fire()
+		err = qerror.NotSupportEngineType.Format(enginetype)
+		return
 	}
 
 	return nil
@@ -186,13 +288,26 @@ func checkSourcetablesUrl(url string, enginetype string, sourcetype string) (err
 
 // Source Tables
 func (ex *SourcemanagerExecutor) SotCreate(ctx context.Context, info SourceTablesInfo) (err error) {
-	sourceInfo, _ := ex.Describe(ctx, info.SourceID)
-	if info.TabType == constants.TableTypeDimension && sourceInfo.SourceType != constants.SourceTypeMysql && sourceInfo.SourceType != constants.SourceTypePostgreSQL {
-		err = fmt.Errorf("can't create dimension in the sourcemanager %s", sourceInfo.SourceType)
+	if len(strings.Split(info.Name, ".")) != 1 {
+		ex.logger.Error().Error("invalid name", fmt.Errorf("can't use '.' in name")).Fire()
+		err = qerror.InvalidSourceName
 		return
 	}
 
-	if err = checkSourcetablesUrl(info.Url, sourceInfo.EngineType, sourceInfo.SourceType); err != nil {
+	sourceInfo, _ := ex.Describe(ctx, info.SourceID)
+	if info.TabType == constants.TableTypeDimension && sourceInfo.SourceType != constants.SourceTypeMysql && sourceInfo.SourceType != constants.SourceTypePostgreSQL {
+		ex.logger.Error().Error("dimension falied", fmt.Errorf("can't create dimension in the sourcemanager %s", sourceInfo.SourceType)).Fire()
+		err = qerror.InvalidDimensionSource
+		return
+	}
+
+	if err = ex.checkSourcetablesUrl(info.Url, sourceInfo.EngineType, sourceInfo.SourceType); err != nil {
+		return
+	}
+
+	if ex.CheckSourceTableExists(ctx, info.SourceID, info.Name) == true {
+		ex.logger.Error().Error("name exist", fmt.Errorf("this name %s is exists", info.Name)).Fire()
+		err = qerror.ResourceAlreadyExists
 		return
 	}
 
@@ -204,26 +319,57 @@ func (ex *SourcemanagerExecutor) SotCreate(ctx context.Context, info SourceTable
 
 	db := ex.db.WithContext(ctx)
 	err = db.Create(info).Error
+	if err != nil {
+		ex.logger.Error().Error("create source table", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
 func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTablesInfo) (err error) {
+	if len(strings.Split(info.Name, ".")) != 1 {
+		ex.logger.Error().Error("invalid name", fmt.Errorf("can't use '.' in name")).Fire()
+		err = qerror.InvalidSourceName
+		return
+	}
+
 	selfInfo, _ := ex.SotDescribe(ctx, info.ID)
-	managerInfo, _ := ex.Describe(ctx, selfInfo.SourceID)
-	if err = checkSourcetablesUrl(info.Url, managerInfo.EngineType, managerInfo.SourceType); err != nil {
+	sourceInfo, _ := ex.Describe(ctx, selfInfo.SourceID)
+	if info.TabType == constants.TableTypeDimension && sourceInfo.SourceType != constants.SourceTypeMysql && sourceInfo.SourceType != constants.SourceTypePostgreSQL {
+		ex.logger.Error().Error("dimension falied", fmt.Errorf("can't create dimension in the sourcemanager %s", sourceInfo.SourceType)).Fire()
+		err = qerror.InvalidDimensionSource
+		return
+	}
+
+	if err = ex.checkSourcetablesUrl(info.Url, sourceInfo.EngineType, sourceInfo.SourceType); err != nil {
+		return
+	}
+
+	if ex.CheckSourceTableExists(ctx, info.SourceID, info.Name) == true {
+		ex.logger.Error().Error("name exist", fmt.Errorf("this name %s is exists", info.Name)).Fire()
+		err = qerror.ResourceAlreadyExists
 		return
 	}
 
 	info.UpdateTime = time.Now().Format("2006-01-02 15:04:05")
 
 	db := ex.db.WithContext(ctx)
-	err = db.Select("name", "comment", "url", "updatetime").Where("id = ? ", info.ID).Updates(info).Error
+	err = db.Select("name", "comment", "url", "updatetime", "tabtype").Where("id = ? ", info.ID).Updates(info).Error
+	if err != nil {
+		ex.logger.Error().Error("update source table", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
 func (ex *SourcemanagerExecutor) SotDelete(ctx context.Context, id string) (err error) {
+	//TODO schedule
 	db := ex.db.WithContext(ctx)
 	err = db.Where("id = ? ", id).Delete(&SourceTablesInfo{}).Error
+	if err != nil {
+		ex.logger.Error().Error("delete source table", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
@@ -231,6 +377,10 @@ func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, 
 	db := ex.db.WithContext(ctx)
 
 	err = db.Table(SourceTablesName).Where("sourceid = ? ", sourceId).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
+	if err != nil {
+		ex.logger.Error().Error("list source table", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
@@ -238,6 +388,10 @@ func (ex *SourcemanagerExecutor) SotDescribe(ctx context.Context, id string) (in
 	db := ex.db.WithContext(ctx)
 
 	err = db.Table(SourceTablesName).Where("id = ? ", id).Scan(&info).Error
+	if err != nil {
+		ex.logger.Error().Error("describe source table", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
 
@@ -245,14 +399,9 @@ func (ex *SourcemanagerExecutor) EngineMap(ctx context.Context, engineName strin
 	db := ex.db.WithContext(ctx)
 
 	err = db.Table(EngineMapTableName).Where("enginetype = ? ", engineName).Scan(&info).Error
+	if err != nil {
+		ex.logger.Error().Error("engine map", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }
-
-/*
-func (ex *SourcemanagerExecutor) SotApplyTable(ctx context.Context, id string) (err error) {
-	db := ex.db.WithContext(ctx)
-
-	err = db.Model(&SourceTablesInfo{}).Where("id = ? ", id).Update("refcount", gorm.Expr("refcount + 1")).Error
-	return
-}
-*/

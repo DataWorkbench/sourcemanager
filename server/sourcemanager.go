@@ -124,7 +124,7 @@ func (s *SourceManagerServer) SotCreate(ctx context.Context, req *smpb.SotCreate
 }
 
 func (s *SourceManagerServer) SotUpdate(ctx context.Context, req *smpb.SotUpdateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.SotUpdate(ctx, executor.SourceTablesInfo{ID: req.GetID(), Name: req.GetName(), Comment: req.GetComment(), Url: req.GetUrl()})
+	err := s.executor.SotUpdate(ctx, executor.SourceTablesInfo{ID: req.GetID(), Name: req.GetName(), Comment: req.GetComment(), Url: req.GetUrl(), TabType: req.GetTabType()})
 	return s.emptyReply, err
 }
 

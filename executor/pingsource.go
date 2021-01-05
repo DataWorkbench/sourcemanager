@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/DataWorkbench/common/constants"
+	"github.com/DataWorkbench/common/qerror"
 	"github.com/Shopify/sarama"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -17,7 +18,7 @@ func PingMysql(url string) (err error) {
 	var m constants.SourceMysqlParams
 
 	if err = json.Unmarshal([]byte(url), &m); err != nil {
-		return err
+		return
 	}
 
 	dsn := fmt.Sprintf(
@@ -40,7 +41,7 @@ func PingPostgreSQL(url string) (err error) {
 	var p constants.SourcePostgreSQLParams
 
 	if err = json.Unmarshal([]byte(url), &p); err != nil {
-		return err
+		return
 	}
 
 	dsn := fmt.Sprintf(
@@ -63,7 +64,7 @@ func PingKafka(url string) (err error) {
 	var k constants.SourceKafkaParams
 
 	if err = json.Unmarshal([]byte(url), &k); err != nil {
-		return err
+		return
 	}
 
 	dsn := fmt.Sprintf("%s:%d", k.Host, k.Port)
@@ -78,19 +79,21 @@ func PingKafka(url string) (err error) {
 }
 
 func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype string, url string, enginetype string) (err error) {
-	if err = checkSourcemanagerUrl(url, enginetype, sourcetype); err != nil {
+	if err = ex.checkSourcemanagerUrl(url, enginetype, sourcetype); err != nil {
 		return
 	}
 
 	if sourcetype == constants.SourceTypeMysql {
-		return PingMysql(url)
+		err = PingMysql(url)
 	} else if sourcetype == constants.SourceTypePostgreSQL {
-		return PingPostgreSQL(url)
+		err = PingPostgreSQL(url)
 	} else if sourcetype == constants.SourceTypeKafka {
-		return PingKafka(url)
-	} else {
-		return fmt.Errorf("unknow source type %s", sourcetype)
+		err = PingKafka(url)
+	}
+	if err != nil {
+		ex.logger.Error().Error("connect source failed", err).Fire()
+		err = qerror.ConnectSourceFailed
 	}
 
-	return nil
+	return
 }

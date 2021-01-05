@@ -153,6 +153,7 @@ func TestSourceManagerGRPC_Lists(t *testing.T) {
 	var i smpb.ListsRequest
 
 	mainInit(t)
+	i.SpaceID = "wks-0123456789012345"
 	i.Limit = 100
 	i.Offset = 0
 
@@ -237,6 +238,7 @@ func TestSourceManagerGRPC_SotUpdate(t *testing.T) {
 	i.ID = info.ID
 	i.Name = info.Name
 	i.Url = info.Url
+	i.TabType = info.TabType
 
 	_, err := client.SotUpdate(ctx, &i)
 	require.Nil(t, err, "%+v", err)

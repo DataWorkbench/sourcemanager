@@ -4,7 +4,7 @@ USE data_workbench;
 
 create table enginemapsource(
 	enginetype varchar(16),
-	sourcetype varchar(256)
+	sourcetype varchar(512)
 ) ENGINE=InnoDB;
 
 insert into enginemapsource values('Flink', 'MySQL,PostgreSQL,Kafka');
@@ -18,7 +18,7 @@ create table sourcemanager(
 	name varchar(64) not null,
 	comment varchar(256),
 	creator varchar(16),
-	url varchar(2000),
+	url varchar(8000),
 	createtime timestamp default now(),
 	updatetime timestamp,
 	enginetype varchar(16)
@@ -35,7 +35,7 @@ create table sourcetables(
 	tabtype char,
 	name varchar(64) not null,
 	comment varchar(256),
-	url varchar(2000),
+	url varchar(8000),
 	createtime timestamp default now(),
 	updatetime timestamp,
 	foreign key(sourceid) references sourcemanager(id)

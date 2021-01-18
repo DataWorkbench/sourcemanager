@@ -17,6 +17,8 @@ github.com/DataWorkbench/common v0.0.0-20201230023001-cd584507df09 h1:wUkFlxwNiU
 github.com/DataWorkbench/common v0.0.0-20201230023001-cd584507df09/go.mod h1:vVEyPxAs/EJ28FZUL4ChCC0JJ7yKalWReoFSVtWpwDs=
 github.com/DataWorkbench/common v0.0.0-20210105190256-e3f9da4ba507 h1:n1c50/8aSta4rSsWDvhqr3Y2ZnMwjTUyw2bnF5+K/Y8=
 github.com/DataWorkbench/common v0.0.0-20210105190256-e3f9da4ba507/go.mod h1:vVEyPxAs/EJ28FZUL4ChCC0JJ7yKalWReoFSVtWpwDs=
+github.com/DataWorkbench/common v0.0.0-20210112165337-c9bae54917e0 h1:B6y0POPAqOzRcfULk86n+3hUecwEwG6KqEZyv7v5l0I=
+github.com/DataWorkbench/common v0.0.0-20210112165337-c9bae54917e0/go.mod h1:vVEyPxAs/EJ28FZUL4ChCC0JJ7yKalWReoFSVtWpwDs=
 github.com/DataWorkbench/glog v0.0.0-20201114060240-9471edb2b8cf h1:JcbEUCoQOICv7iwJodQkzx/W9xtWerYi5iCShEJSS/Q=
 github.com/DataWorkbench/glog v0.0.0-20201114060240-9471edb2b8cf/go.mod h1:zymxJLXn162xdWYUqIb729S3ZzRQpdTj/LwnW+xxru4=
 github.com/DataWorkbench/gproto v0.0.0-20201230220313-9a7fcdf9ba2d h1:tQF2ykf9cyE0sRcIE7t0b2Dy/g61xhkdbmvR8iX6LRE=
@@ -25,6 +27,8 @@ github.com/DataWorkbench/gproto v0.0.0-20210104114624-3afe5b435ad0 h1:0B+3pHdFxH
 github.com/DataWorkbench/gproto v0.0.0-20210104114624-3afe5b435ad0/go.mod h1:ZCyz1BvwA0kGnybpNCnBRfFqgDKu73YFQ9yE/rUSRfo=
 github.com/DataWorkbench/gproto v0.0.0-20210105112725-cc589a360f9f h1:lXSu6jMaK60+SotXNQabCNf+mtJupm5XJKv9ZztGlcI=
 github.com/DataWorkbench/gproto v0.0.0-20210105112725-cc589a360f9f/go.mod h1:ZCyz1BvwA0kGnybpNCnBRfFqgDKu73YFQ9yE/rUSRfo=
+github.com/DataWorkbench/gproto v0.0.0-20210115065103-2530f7826542 h1:hyNEGWbbEA7GdyB6FlYwjDhuCyWQyY1gXQ0MdQOD9p0=
+github.com/DataWorkbench/gproto v0.0.0-20210115065103-2530f7826542/go.mod h1:ZCyz1BvwA0kGnybpNCnBRfFqgDKu73YFQ9yE/rUSRfo=
 github.com/DataWorkbench/loader v0.0.0-20201119073611-6f210eb11a8c h1:HcEtluqqKKkBW4wK8YvnCIPxtffbEYBrVr3x/T98vWU=
 github.com/DataWorkbench/loader v0.0.0-20201119073611-6f210eb11a8c/go.mod h1:K2ou8EU8Cto30za+mKbfCXXc8C6BRpyCjg+4E2CRwV4=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -374,6 +378,7 @@ github.com/pierrec/lz4 v2.5.2+incompatible h1:WCjObylUIOlKy/+7Abdn34TLIkXiA4UWUM
 github.com/pierrec/lz4 v2.5.2+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/profile v1.2.1/go.mod h1:hJw3o1OdXxsrSjjVksARp5W95eeEaEfptyVZyv6JUPA=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

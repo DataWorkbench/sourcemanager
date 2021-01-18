@@ -193,7 +193,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerI
 		return
 	}
 
-	if ex.CheckSourceExists(ctx, info.SpaceID, info.Name) == true {
+	if ex.CheckSourceExists(ctx, descInfo.SpaceID, info.Name) == true && descInfo.Name != info.Name {
 		ex.logger.Error().Error("name exist", fmt.Errorf("this name %s is exists", info.Name)).Fire()
 		err = qerror.ResourceAlreadyExists
 		return
@@ -345,7 +345,7 @@ func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTable
 		return
 	}
 
-	if ex.CheckSourceTableExists(ctx, info.SourceID, info.Name) == true {
+	if ex.CheckSourceTableExists(ctx, selfInfo.SourceID, info.Name) == true && info.Name != selfInfo.Name {
 		ex.logger.Error().Error("name exist", fmt.Errorf("this name %s is exists", info.Name)).Fire()
 		err = qerror.ResourceAlreadyExists
 		return

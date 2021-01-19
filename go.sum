@@ -19,6 +19,8 @@ github.com/DataWorkbench/common v0.0.0-20210105190256-e3f9da4ba507 h1:n1c50/8aSt
 github.com/DataWorkbench/common v0.0.0-20210105190256-e3f9da4ba507/go.mod h1:vVEyPxAs/EJ28FZUL4ChCC0JJ7yKalWReoFSVtWpwDs=
 github.com/DataWorkbench/common v0.0.0-20210112165337-c9bae54917e0 h1:B6y0POPAqOzRcfULk86n+3hUecwEwG6KqEZyv7v5l0I=
 github.com/DataWorkbench/common v0.0.0-20210112165337-c9bae54917e0/go.mod h1:vVEyPxAs/EJ28FZUL4ChCC0JJ7yKalWReoFSVtWpwDs=
+github.com/DataWorkbench/common v0.0.0-20210119131012-d46a334fa62c h1:AtSUFYTYfeefz7Od2aMH4zQaTwcsBVIgwKtnbJr2SeE=
+github.com/DataWorkbench/common v0.0.0-20210119131012-d46a334fa62c/go.mod h1:vVEyPxAs/EJ28FZUL4ChCC0JJ7yKalWReoFSVtWpwDs=
 github.com/DataWorkbench/glog v0.0.0-20201114060240-9471edb2b8cf h1:JcbEUCoQOICv7iwJodQkzx/W9xtWerYi5iCShEJSS/Q=
 github.com/DataWorkbench/glog v0.0.0-20201114060240-9471edb2b8cf/go.mod h1:zymxJLXn162xdWYUqIb729S3ZzRQpdTj/LwnW+xxru4=
 github.com/DataWorkbench/gproto v0.0.0-20201230220313-9a7fcdf9ba2d h1:tQF2ykf9cyE0sRcIE7t0b2Dy/g61xhkdbmvR8iX6LRE=
@@ -51,6 +53,7 @@ github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmV
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a/go.mod h1:DAHtR1m6lCRdSC2Tm3DSWRPvIPr6xNKyeHdqDQSQT+A=
 github.com/aws/aws-lambda-go v1.13.3/go.mod h1:4UKl9IzQMoD+QF79YdCuzCwp8VbmG4VAQwij/eHl5CU=
+github.com/aws/aws-sdk-go v1.27.0 h1:0xphMHGMLBrPMfxR2AmVjZKcMEESEgWF8Kru94BNByk=
 github.com/aws/aws-sdk-go v1.27.0/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go-v2 v0.18.0/go.mod h1:JWVYvqSMppoMJC0x5wdwiImzgXTI9FuZwxzkQq9wy+g=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
@@ -276,6 +279,7 @@ github.com/jcmturner/gofork v1.0.0 h1:J7uCkflzTEhUZ64xqKnkDxq3kzc96ajM1Gli5ktUem
 github.com/jcmturner/gofork v1.0.0/go.mod h1:MK8+TM0La+2rjBD4jE12Kj1pCCxK7d2LK/UM3ncEo0o=
 github.com/jinzhu/inflection v1.0.0/go.mod h1:h+uFLlag+Qp1Va5pdKtLDYj+kHp5pxUVkryuEj+Srlc=
 github.com/jinzhu/now v1.1.1/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/z8=
+github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af h1:pmfjZENx5imkbgOkpRUYLnmbU7UEFbjtDA2hxJ1ichM=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=

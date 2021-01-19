@@ -26,6 +26,7 @@ var mNameError smpb.CreateRequest       //create failed
 var mJsonError smpb.CreateRequest       //create failed
 var mEngintTypeError smpb.CreateRequest //create failed
 var mSourceTypeError smpb.CreateRequest //create failed
+var mS3 smpb.CreateRequest
 
 var tPG smpb.SotCreateRequest
 var tKafka smpb.SotCreateRequest
@@ -40,6 +41,8 @@ var tmw smpb.SotCreateRequest
 var tmwd smpb.SotCreateRequest
 var tmc smpb.SotCreateRequest
 var tmcd smpb.SotCreateRequest
+var ts3s smpb.SotCreateRequest
+var ts3d smpb.SotCreateRequest
 
 func typeToJsonString(v interface{}) string {
 	s, _ := json.Marshal(&v)
@@ -57,9 +60,10 @@ func mainInit(t *testing.T) {
 	mNameExists = smpb.CreateRequest{ID: "som-0123456789012348", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
 	mNameError = smpb.CreateRequest{ID: "som-0123456789012349", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "hello.world", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
 	mNewSpace = smpb.CreateRequest{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "newspace", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	mJsonError = smpb.CreateRequest{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: "Error.json . error"}
-	mEngintTypeError = smpb.CreateRequest{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: "NotFlink", SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	mSourceTypeError = smpb.CreateRequest{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: "ErrorSourceType", Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	mJsonError = smpb.CreateRequest{ID: "som-0123456789012351", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: "Error.json . error"}
+	mEngintTypeError = smpb.CreateRequest{ID: "som-0123456789012352", SpaceID: "wks-0123456789012346", EngineType: "NotFlink", SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	mSourceTypeError = smpb.CreateRequest{ID: "som-0123456789012353", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: "ErrorSourceType", Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	mS3 = smpb.CreateRequest{ID: "som-0123456789012354", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeS3, Name: "s3", Comment: "qingcloud s3", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceS3Params{AccessKey: "RDTHDPNFWWDNWPIHESWK", SecretKey: "sVbVhAUsKGPPdiTOPAgveqCNhFjtvXFNpsPnQ7Hx", EndPoint: "http://s3.gd2.qingstor.com"})} // s3 not is url bucket
 
 	// Source Tables
 	tPG = smpb.SotCreateRequest{ID: "sot-0123456789012345", SourceID: mPG.ID, Name: "pd", Comment: "postgresql", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeDimension}
@@ -75,6 +79,8 @@ func mainInit(t *testing.T) {
 	tmwd = smpb.SotCreateRequest{ID: "sot-0123456789012356", SourceID: mMysql.ID, Name: "mwd", Comment: "join dimension table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}}), TabType: constants.TableTypeCommon}
 	tmc = smpb.SotCreateRequest{ID: "sot-0123456789012357", SourceID: mMysql.ID, Name: "mc", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeCommon}
 	tmcd = smpb.SotCreateRequest{ID: "sot-0123456789012358", SourceID: mMysql.ID, Name: "mcd", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}}), TabType: constants.TableTypeCommon} //'connector.write.flush.max-rows' = '1'
+	ts3s = smpb.SotCreateRequest{ID: "sot-0123456789012359", SourceID: mS3.ID, Name: "s3s", Comment: "s3 source", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/source", Format: "json"}), TabType: constants.TableTypeCommon}
+	ts3d = smpb.SotCreateRequest{ID: "sot-0123456789012360", SourceID: mS3.ID, Name: "s3d", Comment: "s3 destination", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/destination", Format: "json"}), TabType: constants.TableTypeCommon}
 
 	address := "127.0.0.1:50001"
 	lp := glog.NewDefault()
@@ -127,6 +133,8 @@ func TestSourceManagerGRPC_Create(t *testing.T) {
 	require.Equal(t, errorCode(err), qerror.NotSupportSourceType.Code())
 	_, err = client.Create(ctx, &mEngintTypeError)
 	require.Equal(t, errorCode(err), qerror.NotSupportEngineType.Code())
+	_, err = client.Create(ctx, &mS3)
+	require.Nil(t, err, "%+v", err)
 }
 
 func TestSourceManagerGRPC_PingSource(t *testing.T) {
@@ -150,6 +158,13 @@ func TestSourceManagerGRPC_PingSource(t *testing.T) {
 	p.EngineType = mKafka.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
+
+	p.SourceType = mS3.SourceType
+	p.Url = mS3.Url
+	p.EngineType = mS3.EngineType
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
+	//require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
 }
 
 func TestSourceManagerGRPC_EngineMap(t *testing.T) {
@@ -162,7 +177,8 @@ func TestSourceManagerGRPC_EngineMap(t *testing.T) {
 	require.Equal(t, strings.Split(reply.SourceType, ",")[0], constants.SourceTypeMysql)
 	require.Equal(t, strings.Split(reply.SourceType, ",")[1], constants.SourceTypePostgreSQL)
 	require.Equal(t, strings.Split(reply.SourceType, ",")[2], constants.SourceTypeKafka)
-	require.Equal(t, len(strings.Split(reply.SourceType, ",")), 3)
+	require.Equal(t, strings.Split(reply.SourceType, ",")[3], constants.SourceTypeS3)
+	require.Equal(t, len(strings.Split(reply.SourceType, ",")), 4)
 }
 
 func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
@@ -184,6 +200,11 @@ func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
 		d.ID = mNewSpace.ID
+		rep, err = client.Describe(ctx, &d)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, d.ID, rep.ID)
+		return nil
+		d.ID = mS3.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
@@ -229,7 +250,7 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 3)
+		require.Equal(t, len(rep.Infos), 4)
 		i.SpaceID = mNewSpace.SpaceID
 		i.Limit = 100
 		i.Offset = 0
@@ -265,6 +286,9 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
 			i.ID = mKafka.ID
+			_, err = client.Delete(ctx, &i)
+			require.Nil(t, err, "%+v", err)
+			i.ID = mS3.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
 			i.ID = mNewSpace.ID
@@ -338,6 +362,10 @@ func TestSourceManagerGRPC_SotCreate(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 	_, err = client.SotCreate(ctx, &tmcd)
 	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &ts3s)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &ts3d)
+	require.Nil(t, err, "%+v", err)
 }
 
 func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
@@ -366,6 +394,13 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
+
+		i.SourceID = ts3s.SourceID
+		i.Limit = 100
+		i.Offset = 0
+		rep, err = client.SotList(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, len(rep.Infos), 2)
 	} else {
 		i.SourceID = SourceID
 		i.Limit = 100
@@ -410,6 +445,12 @@ func tablesDelete(t *testing.T, id string) {
 		i.ID = tmcd.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
+		i.ID = ts3s.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = ts3d.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
 	} else {
 		i.ID = id
 		_, err = client.SotDelete(ctx, &i)
@@ -433,6 +474,12 @@ func tablesDescribe(t *testing.T, id string) *smpb.SotInfoReply {
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		i.ID = tMysqlDest.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = ts3s.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = ts3d.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 	} else {

@@ -7,7 +7,7 @@ create table enginemapsource(
 	sourcetype varchar(512)
 ) ENGINE=InnoDB;
 
-insert into enginemapsource values('Flink', 'MySQL,PostgreSQL,Kafka');
+insert into enginemapsource values('Flink', 'MySQL,PostgreSQL,Kafka,S3');
 alter table enginemapsource add constraint enginemapsource_pkey primary key(enginetype);
 
 -- sourceManagerTable
@@ -25,13 +25,13 @@ create table sourcemanager(
 ) ENGINE=InnoDB;
 alter table sourcemanager add constraint sourcemanager_pkey primary key(id);
 create unique index sourcemanager_unique ON  sourcemanager (spaceid, name);
-alter table sourcemanager add CONSTRAINT sourcemanager_chk_type check(sourcetype = 'MySQL' or sourcetype = "PostgreSQL" or sourcetype = "Kafka");
+alter table sourcemanager add CONSTRAINT sourcemanager_chk_type check(sourcetype = 'MySQL' or sourcetype = "PostgreSQL" or sourcetype = "Kafka" or sourcetype = "S3");
 alter table sourcemanager add constraint sourcemanager_chk_crt check (creator = 'workbench' or creator = 'custom');
 
 -- tableManagerTable
 create table sourcetables(
 	id varchar(24),
-	sourceid varchar(24) not null, 
+	sourceid varchar(24) not null,
 	tabtype char,
 	name varchar(64) not null,
 	comment varchar(256),

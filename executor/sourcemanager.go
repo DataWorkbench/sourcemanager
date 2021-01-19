@@ -98,6 +98,13 @@ func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url string, enginetype st
 				err = qerror.InvalidJSON
 				return
 			}
+		} else if sourcetype == constants.SourceTypeS3 {
+			var v constants.SourceS3Params
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source s3 url", err).Fire()
+				err = qerror.InvalidJSON
+				return
+			}
 		} else {
 			ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
 			err = qerror.NotSupportSourceType.Format(sourcetype)
@@ -269,6 +276,13 @@ func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url string, enginetype str
 			var v constants.FlinkTableDefineKafka
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
 				ex.logger.Error().Error("check source kafka define url", err).Fire()
+				err = qerror.InvalidJSON
+				return err
+			}
+		} else if sourcetype == constants.SourceTypeS3 {
+			var v constants.FlinkTableDefineS3
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source s3 define url", err).Fire()
 				err = qerror.InvalidJSON
 				return err
 			}

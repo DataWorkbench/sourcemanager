@@ -8,9 +8,13 @@ import (
 	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/common/qerror"
 	"github.com/Shopify/sarama"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
-
 	"gorm.io/gorm"
 )
 
@@ -78,6 +82,32 @@ func PingKafka(url string) (err error) {
 	return
 }
 
+func PingS3(url string) (err error) {
+	var s constants.SourceS3Params
+
+	if err = json.Unmarshal([]byte(url), &s); err != nil {
+		return
+	}
+
+	sess, err1 := session.NewSession(&aws.Config{
+		Credentials: credentials.NewStaticCredentials(s.AccessKey, s.SecretKey, ""),
+		Endpoint:    aws.String(s.EndPoint),
+		Region:      aws.String("us-east-1"),
+	})
+	if err1 != nil {
+		err = err1
+		return
+	}
+
+	svc := s3.New(sess)
+	_, err = svc.ListBuckets(nil)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype string, url string, enginetype string) (err error) {
 	if err = ex.checkSourcemanagerUrl(url, enginetype, sourcetype); err != nil {
 		return
@@ -89,6 +119,11 @@ func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype stri
 		err = PingPostgreSQL(url)
 	} else if sourcetype == constants.SourceTypeKafka {
 		err = PingKafka(url)
+	} else if sourcetype == constants.SourceTypeS3 {
+		err = PingS3(url)
+	} else {
+		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
+		err = qerror.ConnectSourceFailed
 	}
 	if err != nil {
 		ex.logger.Error().Error("connect source failed", err).Fire()

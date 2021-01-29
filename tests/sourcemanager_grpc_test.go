@@ -27,6 +27,7 @@ var mJsonError smpb.CreateRequest       //create failed
 var mEngintTypeError smpb.CreateRequest //create failed
 var mSourceTypeError smpb.CreateRequest //create failed
 var mS3 smpb.CreateRequest
+var mCK smpb.CreateRequest
 
 var tPG smpb.SotCreateRequest
 var tKafka smpb.SotCreateRequest
@@ -43,6 +44,7 @@ var tmc smpb.SotCreateRequest
 var tmcd smpb.SotCreateRequest
 var ts3s smpb.SotCreateRequest
 var ts3d smpb.SotCreateRequest
+var tCKd smpb.SotCreateRequest // click support sink only.
 
 func typeToJsonString(v interface{}) string {
 	s, _ := json.Marshal(&v)
@@ -51,8 +53,14 @@ func typeToJsonString(v interface{}) string {
 
 var client smpb.SourcemanagerClient
 var ctx context.Context
+var initDone bool
 
 func mainInit(t *testing.T) {
+	if initDone == true {
+		return
+	}
+	initDone = true
+
 	// Source Manager
 	mMysql = smpb.CreateRequest{ID: "som-0123456789012345", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
 	mPG = smpb.CreateRequest{ID: "som-0123456789012346", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypePostgreSQL, Name: "pg", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourcePostgreSQLParams{User: "lzzhang", Password: "123456", Host: "127.0.0.1", Port: 5432, Database: "lzzhang"})}
@@ -64,6 +72,7 @@ func mainInit(t *testing.T) {
 	mEngintTypeError = smpb.CreateRequest{ID: "som-0123456789012352", SpaceID: "wks-0123456789012346", EngineType: "NotFlink", SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
 	mSourceTypeError = smpb.CreateRequest{ID: "som-0123456789012353", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: "ErrorSourceType", Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
 	mS3 = smpb.CreateRequest{ID: "som-0123456789012354", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeS3, Name: "s3", Comment: "qingcloud s3", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceS3Params{AccessKey: "RDTHDPNFWWDNWPIHESWK", SecretKey: "sVbVhAUsKGPPdiTOPAgveqCNhFjtvXFNpsPnQ7Hx", EndPoint: "http://s3.gd2.qingstor.com"})} // s3 not is url bucket
+	mCK = smpb.CreateRequest{ID: "som-0123456789012355", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeClickHouse, Name: "clickhouse", Comment: "clickhouse", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceClickHouseParams{User: "default", Password: "", Host: "127.0.0.1", Port: 8123, Database: "default"})}
 
 	// Source Tables
 	tPG = smpb.SotCreateRequest{ID: "sot-0123456789012345", SourceID: mPG.ID, Name: "pd", Comment: "postgresql", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeDimension}
@@ -81,6 +90,7 @@ func mainInit(t *testing.T) {
 	tmcd = smpb.SotCreateRequest{ID: "sot-0123456789012358", SourceID: mMysql.ID, Name: "mcd", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}}), TabType: constants.TableTypeCommon} //'connector.write.flush.max-rows' = '1'
 	ts3s = smpb.SotCreateRequest{ID: "sot-0123456789012359", SourceID: mS3.ID, Name: "s3s", Comment: "s3 source", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/source", Format: "json"}), TabType: constants.TableTypeCommon}
 	ts3d = smpb.SotCreateRequest{ID: "sot-0123456789012360", SourceID: mS3.ID, Name: "s3d", Comment: "s3 destination", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/destination", Format: "json"}), TabType: constants.TableTypeCommon}
+	tCKd = smpb.SotCreateRequest{ID: "sot-0123456789012361", SourceID: mCK.ID, Name: "ck", Comment: "clickhouse destination", Url: typeToJsonString(constants.FlinkTableDefineClickHouse{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
 
 	address := "127.0.0.1:50001"
 	lp := glog.NewDefault()
@@ -135,9 +145,13 @@ func TestSourceManagerGRPC_Create(t *testing.T) {
 	require.Equal(t, errorCode(err), qerror.NotSupportEngineType.Code())
 	_, err = client.Create(ctx, &mS3)
 	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &mCK)
+	require.Nil(t, err, "%+v", err)
 }
 
 func TestSourceManagerGRPC_PingSource(t *testing.T) {
+	mainInit(t)
+
 	var p smpb.PingSourceRequest
 	var err error
 
@@ -165,6 +179,13 @@ func TestSourceManagerGRPC_PingSource(t *testing.T) {
 	_, err = client.PingSource(ctx, &p)
 	require.Nil(t, err, "%+v", err)
 	//require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
+
+	p.SourceType = mCK.SourceType
+	p.Url = mCK.Url
+	p.EngineType = mCK.EngineType
+	_, err = client.PingSource(ctx, &p)
+	require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
+	//require.Nil(t, err, "%+v", err)
 }
 
 func TestSourceManagerGRPC_EngineMap(t *testing.T) {
@@ -178,7 +199,8 @@ func TestSourceManagerGRPC_EngineMap(t *testing.T) {
 	require.Equal(t, strings.Split(reply.SourceType, ",")[1], constants.SourceTypePostgreSQL)
 	require.Equal(t, strings.Split(reply.SourceType, ",")[2], constants.SourceTypeKafka)
 	require.Equal(t, strings.Split(reply.SourceType, ",")[3], constants.SourceTypeS3)
-	require.Equal(t, len(strings.Split(reply.SourceType, ",")), 4)
+	require.Equal(t, strings.Split(reply.SourceType, ",")[4], constants.SourceTypeClickHouse)
+	require.Equal(t, len(strings.Split(reply.SourceType, ",")), 5)
 }
 
 func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
@@ -203,8 +225,11 @@ func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
-		return nil
 		d.ID = mS3.ID
+		rep, err = client.Describe(ctx, &d)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, d.ID, rep.ID)
+		d.ID = mCK.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
@@ -221,16 +246,26 @@ func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
 }
 
 func TestSourceManagerGRPC_Describe(t *testing.T) {
+	mainInit(t)
 	managerDescribe(t, "")
 }
 
 func Clean(t *testing.T) {
-	for _, info := range managerLists(t, mMysql.SpaceID).Infos {
-		for _, table := range tablesLists(t, info.ID).Infos {
-			tablesDelete(t, table.ID)
-		}
-		managerDelete(t, info.ID, false)
-	}
+	var (
+		err error
+		d   smpb.DeleteAllRequest
+	)
+
+	d.SpaceID = mMysql.SpaceID
+	_, err = client.DeleteAll(ctx, &d)
+	require.Nil(t, err, "%+v", err)
+	//for _, info := range managerLists(t, mMysql.SpaceID).Infos {
+	//	for _, table := range tablesLists(t, info.ID).Infos {
+	//		tablesDelete(t, table.ID)
+	//	}
+	//	managerDelete(t, info.ID, false)
+	//}
+
 	for _, info := range managerLists(t, mNewSpace.SpaceID).Infos {
 		for _, table := range tablesLists(t, info.ID).Infos {
 			tablesDelete(t, table.ID)
@@ -250,7 +285,7 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 4)
+		require.Equal(t, len(rep.Infos), 5)
 		i.SpaceID = mNewSpace.SpaceID
 		i.Limit = 100
 		i.Offset = 0
@@ -270,6 +305,7 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 }
 
 func TestSourceManagerGRPC_Lists(t *testing.T) {
+	mainInit(t)
 	managerLists(t, "")
 }
 
@@ -289,6 +325,9 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
 			i.ID = mS3.ID
+			_, err = client.Delete(ctx, &i)
+			require.Nil(t, err, "%+v", err)
+			i.ID = mCK.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
 			i.ID = mNewSpace.ID
@@ -366,6 +405,8 @@ func TestSourceManagerGRPC_SotCreate(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 	_, err = client.SotCreate(ctx, &ts3d)
 	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &tCKd)
+	require.Nil(t, err, "%+v", err)
 }
 
 func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
@@ -401,6 +442,13 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 2)
+
+		i.SourceID = tCKd.SourceID
+		i.Limit = 100
+		i.Offset = 0
+		rep, err = client.SotList(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, len(rep.Infos), 1)
 	} else {
 		i.SourceID = SourceID
 		i.Limit = 100
@@ -451,6 +499,9 @@ func tablesDelete(t *testing.T, id string) {
 		i.ID = ts3d.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
+		i.ID = tCKd.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
 	} else {
 		i.ID = id
 		_, err = client.SotDelete(ctx, &i)
@@ -480,6 +531,9 @@ func tablesDescribe(t *testing.T, id string) *smpb.SotInfoReply {
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		i.ID = ts3d.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = tCKd.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 	} else {

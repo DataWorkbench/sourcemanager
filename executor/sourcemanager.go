@@ -37,6 +37,7 @@ type SourcemanagerInfo struct {
 	CreateTime string `gorm:"column:createtime;"`
 	UpdateTime string `gorm:"column:updatetime;"`
 	EngineType string `gorm:"column:enginetype;"`
+	Direction  string `gorm:"column:direction;"`
 }
 
 type SourceTablesInfo struct {
@@ -75,6 +76,25 @@ func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecuto
 	return ex
 }
 
+func (ex *SourcemanagerExecutor) GetSourceDirection(enginetype string, sourcetype string) (direction string, err error) {
+	if enginetype == constants.EngineTypeFlink {
+		if sourcetype == constants.SourceTypeMysql || sourcetype == constants.SourceTypePostgreSQL || sourcetype == constants.SourceTypeKafka || sourcetype == constants.SourceTypeS3 {
+			direction = constants.DirectionSource + constants.DirectionDestination
+		} else if sourcetype == constants.SourceTypeClickHouse {
+			direction = constants.DirectionDestination
+		} else {
+			ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
+			err = qerror.NotSupportSourceType.Format(sourcetype)
+			return
+		}
+	} else {
+		ex.logger.Error().Error("not support engine type", fmt.Errorf("unknow engine type %s", enginetype)).Fire()
+		err = qerror.NotSupportEngineType.Format(enginetype)
+		return
+	}
+	return
+}
+
 func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url string, enginetype string, sourcetype string) (err error) {
 	if enginetype == constants.EngineTypeFlink {
 		if sourcetype == constants.SourceTypeMysql {
@@ -102,6 +122,13 @@ func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url string, enginetype st
 			var v constants.SourceS3Params
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
 				ex.logger.Error().Error("check source s3 url", err).Fire()
+				err = qerror.InvalidJSON
+				return
+			}
+		} else if sourcetype == constants.SourceTypeClickHouse {
+			var v constants.SourceClickHouseParams
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source clickhouse url", err).Fire()
 				err = qerror.InvalidJSON
 				return
 			}
@@ -178,6 +205,11 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, info SourcemanagerI
 	}
 	info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 	info.UpdateTime = info.CreateTime
+	info.Direction, err = ex.GetSourceDirection(info.EngineType, info.SourceType)
+	if err != nil {
+		ex.logger.Error().Error("create source", err).Fire()
+		return
+	}
 
 	db := ex.db.WithContext(ctx)
 	err = db.Create(info).Error
@@ -286,6 +318,13 @@ func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url string, enginetype str
 				err = qerror.InvalidJSON
 				return err
 			}
+		} else if sourcetype == constants.SourceTypeClickHouse {
+			var v constants.FlinkTableDefineClickHouse
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source clickhouse define url", err).Fire()
+				err = qerror.InvalidJSON
+				return err
+			}
 		} else {
 			ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
 			err = qerror.NotSupportSourceType.Format(sourcetype)
@@ -377,7 +416,7 @@ func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTable
 }
 
 func (ex *SourcemanagerExecutor) SotDelete(ctx context.Context, id string) (err error) {
-	//TODO schedule
+	//TODO schedule DeleteAll
 	db := ex.db.WithContext(ctx)
 	err = db.Where("id = ? ", id).Delete(&SourceTablesInfo{}).Error
 	if err != nil {
@@ -417,5 +456,36 @@ func (ex *SourcemanagerExecutor) EngineMap(ctx context.Context, engineName strin
 		ex.logger.Error().Error("engine map", err).Fire()
 		err = qerror.Internal
 	}
+	return
+}
+
+func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, SpaceID string) (err error) {
+	var (
+		managers []*SourcemanagerInfo
+		tables   []*SourceTablesInfo
+	)
+
+	managers, err = ex.Lists(ctx, 10000, 0, SpaceID)
+	if err != nil {
+		return
+	}
+	for _, managerInfo := range managers {
+		tables, err = ex.SotLists(ctx, managerInfo.ID, 10000, 0)
+		if err != nil {
+			return
+		}
+
+		for _, tableInfo := range tables {
+			err = ex.SotDelete(ctx, tableInfo.ID)
+			if err != nil {
+				return
+			}
+		}
+		err = ex.Delete(ctx, managerInfo.ID)
+		if err != nil {
+			return
+		}
+	}
+
 	return
 }

@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/common/qerror"
@@ -60,6 +65,48 @@ func PingPostgreSQL(url string) (err error) {
 	} else {
 		sqldb, _ := db.DB()
 		sqldb.Close()
+	}
+	return
+}
+
+func PingClickHouse(url string) (err error) {
+	var (
+		p       constants.SourceClickHouseParams
+		client  *http.Client
+		req     *http.Request
+		rep     *http.Response
+		reqBody io.Reader
+	)
+
+	if err = json.Unmarshal([]byte(url), &p); err != nil {
+		return
+	}
+
+	client = &http.Client{Timeout: time.Second * 10}
+	reqBody = strings.NewReader("SELECT 1")
+	dsn := fmt.Sprintf(
+		"http://%s:%d/?user=%s&password=%s&database=%s",
+		p.Host, p.Port, p.User, p.Password, p.Database,
+	)
+
+	req, err = http.NewRequest(http.MethodGet, dsn, reqBody)
+	if err != nil {
+		return
+	}
+
+	rep, err = client.Do(req)
+	if err != nil {
+		rep.Body.Close()
+		return
+	}
+
+	repBody, _ := ioutil.ReadAll(rep.Body)
+	rep.Body.Close()
+
+	if rep.StatusCode != http.StatusOK {
+		err = fmt.Errorf("%s request failed, http status code %d, message %s", dsn, rep.StatusCode, string(repBody))
+		rep.Body.Close()
+		return
 	}
 	return
 }
@@ -121,6 +168,8 @@ func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype stri
 		err = PingKafka(url)
 	} else if sourcetype == constants.SourceTypeS3 {
 		err = PingS3(url)
+	} else if sourcetype == constants.SourceTypeClickHouse {
+		err = PingClickHouse(url)
 	} else {
 		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
 		err = qerror.ConnectSourceFailed

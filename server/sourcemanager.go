@@ -5,6 +5,7 @@ import (
 
 	"github.com/DataWorkbench/gproto/pkg/smpb"
 
+	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/sourcemanager/executor"
 )
 
@@ -26,6 +27,7 @@ func ToInfoReplay(s executor.SourcemanagerInfo) (p smpb.InfoReply) {
 	p.Url = s.Url
 	p.UpdateTime = s.UpdateTime
 	p.EngineType = s.EngineType
+	p.Direction = s.Direction
 	return
 }
 
@@ -97,6 +99,11 @@ func (s *SourceManagerServer) List(ctx context.Context, req *smpb.ListsRequest) 
 	reply.Infos = make([]*smpb.InfoReply, len(infos))
 	for i := range infos {
 		t := ToInfoReplay(*infos[i])
+		if tmperr := s.executor.PingSource(ctx, t.SourceType, t.Url, t.EngineType); tmperr != nil {
+			t.Connected = constants.SourceConnectedFailed
+		} else {
+			t.Connected = constants.SourceConnectedSuccess
+		}
 		reply.Infos[i] = &t
 	}
 	return reply, nil
@@ -108,6 +115,12 @@ func (s *SourceManagerServer) Describe(ctx context.Context, req *smpb.DescribeRe
 		return nil, err
 	}
 	reply := ToInfoReplay(info)
+
+	if tmperr := s.executor.PingSource(ctx, reply.SourceType, reply.Url, reply.EngineType); tmperr != nil {
+		reply.Connected = constants.SourceConnectedFailed
+	} else {
+		reply.Connected = constants.SourceConnectedSuccess
+	}
 
 	return &reply, nil
 }
@@ -166,4 +179,9 @@ func (s *SourceManagerServer) EngineMap(ctx context.Context, req *smpb.EngingMap
 
 	reply := smpb.EngineMapReply{EngineType: info.EngineType, SourceType: info.SourceType}
 	return &reply, nil
+}
+
+func (s *SourceManagerServer) DeleteAll(ctx context.Context, req *smpb.DeleteAllRequest) (*smpb.EmptyReply, error) {
+	err := s.executor.DeleteAll(ctx, req.GetSpaceID())
+	return s.emptyReply, err
 }

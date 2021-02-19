@@ -96,7 +96,6 @@ func PingClickHouse(url string) (err error) {
 
 	rep, err = client.Do(req)
 	if err != nil {
-		rep.Body.Close()
 		return
 	}
 

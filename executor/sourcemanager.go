@@ -250,7 +250,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerI
 }
 
 func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string) (err error) {
-	tables, _ := ex.SotLists(ctx, id, 100, 0)
+	tables, _ := ex.SotLists(ctx, id, 10, 1)
 	if len(tables) > 0 {
 		err = qerror.ResourceIsUsing
 		return
@@ -266,8 +266,10 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string) (err err
 	return
 }
 
-func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset int32, spaceid string) (infos []*SourcemanagerInfo, err error) {
+func (ex *SourcemanagerExecutor) Lists(ctx context.Context, pagesize int32, pageno int32, spaceid string) (infos []*SourcemanagerInfo, err error) {
 	db := ex.db.WithContext(ctx)
+	limit := pagesize
+	offset := (pageno - 1) * pagesize
 
 	err = db.Table(SourcemanagerTableName).Where("spaceid = ? ", spaceid).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
 	if err != nil {
@@ -426,8 +428,10 @@ func (ex *SourcemanagerExecutor) SotDelete(ctx context.Context, id string) (err 
 	return
 }
 
-func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, limit int32, offset int32) (infos []*SourceTablesInfo, err error) {
+func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, pagesize int32, pageno int32) (infos []*SourceTablesInfo, err error) {
 	db := ex.db.WithContext(ctx)
+	limit := pagesize
+	offset := (pageno - 1) * pagesize
 
 	err = db.Table(SourceTablesName).Where("sourceid = ? ", sourceId).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
 	if err != nil {
@@ -465,12 +469,12 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, SpaceID string) 
 		tables   []*SourceTablesInfo
 	)
 
-	managers, err = ex.Lists(ctx, 10000, 0, SpaceID)
+	managers, err = ex.Lists(ctx, 100000, 1, SpaceID)
 	if err != nil {
 		return
 	}
 	for _, managerInfo := range managers {
-		tables, err = ex.SotLists(ctx, managerInfo.ID, 10000, 0)
+		tables, err = ex.SotLists(ctx, managerInfo.ID, 100000, 1)
 		if err != nil {
 			return
 		}

@@ -120,7 +120,7 @@ func errorCode(err error) string {
 }
 
 // Source Manager
-func TestSourceManagerGRPC_Create(t *testing.T) {
+func Test_Create(t *testing.T) {
 	mainInit(t)
 	Clean(t)
 	var err error
@@ -149,7 +149,7 @@ func TestSourceManagerGRPC_Create(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 }
 
-func TestSourceManagerGRPC_PingSource(t *testing.T) {
+func Test_PingSource(t *testing.T) {
 	mainInit(t)
 
 	var p smpb.PingSourceRequest
@@ -188,7 +188,7 @@ func TestSourceManagerGRPC_PingSource(t *testing.T) {
 	//require.Nil(t, err, "%+v", err)
 }
 
-func TestSourceManagerGRPC_EngineMap(t *testing.T) {
+func Test_EngineMap(t *testing.T) {
 	var i smpb.EngingMapRequest
 
 	i.EngineType = "Flink"
@@ -245,7 +245,7 @@ func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
 	return nil
 }
 
-func TestSourceManagerGRPC_Describe(t *testing.T) {
+func Test_Describe(t *testing.T) {
 	mainInit(t)
 	managerDescribe(t, "")
 }
@@ -281,22 +281,22 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 
 	if SpaceID == "" {
 		i.SpaceID = mMysql.SpaceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 5)
 		i.SpaceID = mNewSpace.SpaceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 		return nil
 	} else {
 		i.SpaceID = SpaceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		return rep
@@ -304,7 +304,7 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 	return nil
 }
 
-func TestSourceManagerGRPC_Lists(t *testing.T) {
+func Test_Lists(t *testing.T) {
 	mainInit(t)
 	managerLists(t, "")
 }
@@ -346,7 +346,7 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 	}
 }
 
-func TestSourceManagerGRPC_Update(t *testing.T) {
+func Test_Update(t *testing.T) {
 	var i smpb.UpdateRequest
 	var err error
 
@@ -369,7 +369,7 @@ func TestSourceManagerGRPC_Update(t *testing.T) {
 }
 
 // Source Tables
-func TestSourceManagerGRPC_SotCreate(t *testing.T) {
+func Test_SotCreate(t *testing.T) {
 	var err error
 	_, err = client.SotCreate(ctx, &tPG)
 	require.Nil(t, err, "%+v", err)
@@ -416,43 +416,43 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 
 	if SourceID == "" {
 		i.SourceID = tPG.SourceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 
 		i.SourceID = tMysql.SourceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 6)
 
 		i.SourceID = tKafka.SourceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 
 		i.SourceID = ts3s.SourceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 2)
 
 		i.SourceID = tCKd.SourceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 	} else {
 		i.SourceID = SourceID
-		i.Limit = 100
-		i.Offset = 0
+		i.PageSize = 100
+		i.PageNo = 1
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		return rep
@@ -460,7 +460,7 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 	return nil
 }
 
-func TestSourceManagerGRPC_SotLists(t *testing.T) {
+func Test_SotLists(t *testing.T) {
 	tablesLists(t, "")
 }
 
@@ -545,11 +545,11 @@ func tablesDescribe(t *testing.T, id string) *smpb.SotInfoReply {
 	return nil
 }
 
-func TestSourceManagerGRPC_SotDescribe(t *testing.T) {
+func Test_SotDescribe(t *testing.T) {
 	tablesDescribe(t, "")
 }
 
-func TestSourceManagerGRPC_SotUpdate(t *testing.T) {
+func Test_SotUpdate(t *testing.T) {
 	var i smpb.SotUpdateRequest
 	var err error
 
@@ -595,14 +595,14 @@ func TestSourceManagerGRPC_SotUpdate(t *testing.T) {
 	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
 }
 
-func TestSourceManagerGRPC_PrepareDelete(t *testing.T) {
+func Test_PrepareDelete(t *testing.T) {
 	managerDelete(t, "", true)
 }
 
-func TestSourceManagerGRPC_SotDelete(t *testing.T) {
+func Test_SotDelete(t *testing.T) {
 	tablesDelete(t, "")
 }
 
-func TestSourceManagerGRPC_Delete(t *testing.T) {
+func Test_Delete(t *testing.T) {
 	managerDelete(t, "", false)
 }

@@ -90,7 +90,7 @@ func (s *SourceManagerServer) Delete(ctx context.Context, req *smpb.DeleteReques
 }
 
 func (s *SourceManagerServer) List(ctx context.Context, req *smpb.ListsRequest) (*smpb.ListsReply, error) {
-	infos, err := s.executor.Lists(ctx, req.GetLimit(), req.GetOffset(), req.GetSpaceID())
+	infos, err := s.executor.Lists(ctx, req.GetPageSize(), req.GetPageNo(), req.GetSpaceID())
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (s *SourceManagerServer) SotDelete(ctx context.Context, req *smpb.SotDelete
 }
 
 func (s *SourceManagerServer) SotList(ctx context.Context, req *smpb.SotListsRequest) (*smpb.SotListsReply, error) {
-	infos, err := s.executor.SotLists(ctx, req.GetSourceID(), req.GetLimit(), req.GetOffset())
+	infos, err := s.executor.SotLists(ctx, req.GetSourceID(), req.GetPageSize(), req.GetPageNo())
 	if err != nil {
 		return nil, err
 	}

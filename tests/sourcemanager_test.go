@@ -45,6 +45,8 @@ var tmcd smpb.SotCreateRequest
 var ts3s smpb.SotCreateRequest
 var ts3d smpb.SotCreateRequest
 var tCKd smpb.SotCreateRequest // click support sink only.
+var tUdfs smpb.SotCreateRequest
+var tUdfd smpb.SotCreateRequest
 
 func typeToJsonString(v interface{}) string {
 	s, _ := json.Marshal(&v)
@@ -91,6 +93,8 @@ func mainInit(t *testing.T) {
 	ts3s = smpb.SotCreateRequest{ID: "sot-0123456789012359", SourceID: mS3.ID, Name: "s3s", Comment: "s3 source", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/source", Format: "json"}), TabType: constants.TableTypeCommon}
 	ts3d = smpb.SotCreateRequest{ID: "sot-0123456789012360", SourceID: mS3.ID, Name: "s3d", Comment: "s3 destination", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/destination", Format: "json"}), TabType: constants.TableTypeCommon}
 	tCKd = smpb.SotCreateRequest{ID: "sot-0123456789012361", SourceID: mCK.ID, Name: "ck", Comment: "clickhouse destination", Url: typeToJsonString(constants.FlinkTableDefineClickHouse{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
+	tUdfs = smpb.SotCreateRequest{ID: "sot-0123456789012362", SourceID: mMysql.ID, Name: "udfs", Comment: "udfs", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}}), TabType: constants.TableTypeCommon}
+	tUdfd = smpb.SotCreateRequest{ID: "sot-0123456789012363", SourceID: mMysql.ID, Name: "udfd", Comment: "udfd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}}), TabType: constants.TableTypeCommon}
 
 	address := "127.0.0.1:50001"
 	lp := glog.NewDefault()
@@ -407,6 +411,10 @@ func Test_SotCreate(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 	_, err = client.SotCreate(ctx, &tCKd)
 	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &tUdfs)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &tUdfd)
+	require.Nil(t, err, "%+v", err)
 }
 
 func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
@@ -427,7 +435,7 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 		i.PageNo = 1
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 6)
+		require.Equal(t, len(rep.Infos), 8)
 
 		i.SourceID = tKafka.SourceID
 		i.PageSize = 100
@@ -502,6 +510,12 @@ func tablesDelete(t *testing.T, id string) {
 		i.ID = tCKd.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
+		i.ID = tUdfs.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = tUdfd.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
 	} else {
 		i.ID = id
 		_, err = client.SotDelete(ctx, &i)
@@ -534,6 +548,12 @@ func tablesDescribe(t *testing.T, id string) *smpb.SotInfoReply {
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		i.ID = tCKd.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = tUdfs.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = tUdfd.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 	} else {

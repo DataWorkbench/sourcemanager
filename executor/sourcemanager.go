@@ -266,10 +266,8 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string) (err err
 	return
 }
 
-func (ex *SourcemanagerExecutor) Lists(ctx context.Context, pagesize int32, pageno int32, spaceid string) (infos []*SourcemanagerInfo, err error) {
+func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset int32, spaceid string) (infos []*SourcemanagerInfo, err error) {
 	db := ex.db.WithContext(ctx)
-	limit := pagesize
-	offset := (pageno - 1) * pagesize
 
 	err = db.Table(SourcemanagerTableName).Where("spaceid = ? ", spaceid).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
 	if err != nil {
@@ -428,10 +426,8 @@ func (ex *SourcemanagerExecutor) SotDelete(ctx context.Context, id string) (err 
 	return
 }
 
-func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, pagesize int32, pageno int32) (infos []*SourceTablesInfo, err error) {
+func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, limit int32, offset int32) (infos []*SourceTablesInfo, err error) {
 	db := ex.db.WithContext(ctx)
-	limit := pagesize
-	offset := (pageno - 1) * pagesize
 
 	err = db.Table(SourceTablesName).Where("sourceid = ? ", sourceId).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
 	if err != nil {

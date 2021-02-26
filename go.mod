@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/DataWorkbench/common v0.0.0-20210129032621-de7f37344042
 	github.com/DataWorkbench/glog v0.0.0-20201114060240-9471edb2b8cf
-	github.com/DataWorkbench/gproto v0.0.0-20210219054746-a035271b0da3
+	github.com/DataWorkbench/gproto v0.0.0-20210226052545-d7f5a2e6c501
 	github.com/DataWorkbench/loader v0.0.0-20201119073611-6f210eb11a8c
 	github.com/Shopify/sarama v1.27.2
 	github.com/aws/aws-sdk-go v1.27.0

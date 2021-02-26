@@ -285,22 +285,22 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 
 	if SpaceID == "" {
 		i.SpaceID = mMysql.SpaceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 5)
 		i.SpaceID = mNewSpace.SpaceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 		return nil
 	} else {
 		i.SpaceID = SpaceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		return rep
@@ -424,43 +424,43 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 
 	if SourceID == "" {
 		i.SourceID = tPG.SourceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 
 		i.SourceID = tMysql.SourceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 8)
 
 		i.SourceID = tKafka.SourceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 
 		i.SourceID = ts3s.SourceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 2)
 
 		i.SourceID = tCKd.SourceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 	} else {
 		i.SourceID = SourceID
-		i.PageSize = 100
-		i.PageNo = 1
+		i.Limit = 100
+		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		return rep

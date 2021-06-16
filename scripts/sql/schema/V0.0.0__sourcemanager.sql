@@ -7,7 +7,7 @@ create table enginemapsource(
 	sourcetype varchar(512)
 ) ENGINE=InnoDB;
 
-insert into enginemapsource values('Flink', 'MySQL,PostgreSQL,Kafka,S3,ClickHouse');
+insert into enginemapsource values('flink', 'MySQL,PostgreSQL,Kafka,S3,ClickHouse');
 alter table enginemapsource add constraint enginemapsource_pkey primary key(enginetype);
 
 -- sourceManagerTable

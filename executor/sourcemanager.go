@@ -77,7 +77,7 @@ func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecuto
 }
 
 func (ex *SourcemanagerExecutor) GetSourceDirection(enginetype string, sourcetype string) (direction string, err error) {
-	if enginetype == constants.EngineTypeFlink {
+	if enginetype == constants.ServerTypeFlink {
 		if sourcetype == constants.SourceTypeMysql || sourcetype == constants.SourceTypePostgreSQL || sourcetype == constants.SourceTypeKafka || sourcetype == constants.SourceTypeS3 {
 			direction = constants.DirectionSource + constants.DirectionDestination
 		} else if sourcetype == constants.SourceTypeClickHouse {
@@ -96,7 +96,7 @@ func (ex *SourcemanagerExecutor) GetSourceDirection(enginetype string, sourcetyp
 }
 
 func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url string, enginetype string, sourcetype string) (err error) {
-	if enginetype == constants.EngineTypeFlink {
+	if enginetype == constants.ServerTypeFlink {
 		if sourcetype == constants.SourceTypeMysql {
 			var v constants.SourceMysqlParams
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
@@ -289,7 +289,7 @@ func (ex *SourcemanagerExecutor) Describe(ctx context.Context, id string) (info 
 }
 
 func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url string, enginetype string, sourcetype string) (err error) {
-	if enginetype == constants.EngineTypeFlink {
+	if enginetype == constants.ServerTypeFlink {
 		if sourcetype == constants.SourceTypeMysql {
 			var v constants.FlinkTableDefineMysql
 			if err = json.Unmarshal([]byte(url), &v); err != nil {

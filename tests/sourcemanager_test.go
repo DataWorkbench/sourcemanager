@@ -615,14 +615,14 @@ func Test_SotUpdate(t *testing.T) {
 	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
 }
 
-func Test_PrepareDelete(t *testing.T) {
-	managerDelete(t, "", true)
-}
-
-func Test_SotDelete(t *testing.T) {
-	tablesDelete(t, "")
-}
-
-func Test_Delete(t *testing.T) {
-	managerDelete(t, "", false)
-}
+//func Test_PrepareDelete(t *testing.T) {
+//	managerDelete(t, "", true)
+//}
+//
+//func Test_SotDelete(t *testing.T) {
+//	tablesDelete(t, "")
+//}
+//
+//func Test_Delete(t *testing.T) {
+//	managerDelete(t, "", false)
+//}

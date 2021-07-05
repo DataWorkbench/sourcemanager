@@ -465,12 +465,12 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, SpaceID string) 
 		tables   []*SourceTablesInfo
 	)
 
-	managers, err = ex.Lists(ctx, 100000, 1, SpaceID)
+	managers, err = ex.Lists(ctx, 100000, 0, SpaceID)
 	if err != nil {
 		return
 	}
 	for _, managerInfo := range managers {
-		tables, err = ex.SotLists(ctx, managerInfo.ID, 100000, 1)
+		tables, err = ex.SotLists(ctx, managerInfo.ID, 100000, 0)
 		if err != nil {
 			return
 		}

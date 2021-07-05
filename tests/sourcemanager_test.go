@@ -64,9 +64,9 @@ func mainInit(t *testing.T) {
 	initDone = true
 
 	// Source Manager
-	mMysql = smpb.CreateRequest{ID: "som-0123456789012345", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "dataworkbench-db", Port: 3306, Database: "data_workbench"})}
+	mMysql = smpb.CreateRequest{ID: "som-0123456789012345", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "password", Host: "dataworkbench-db", Port: 3306, Database: "data_workbench"})}
 	mPG = smpb.CreateRequest{ID: "som-0123456789012346", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypePostgreSQL, Name: "pg", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourcePostgreSQLParams{User: "lzzhang", Password: "123456", Host: "127.0.0.1", Port: 5432, Database: "lzzhang"})}
-	mKafka = smpb.CreateRequest{ID: "som-0123456789012347", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeKafka, Name: "kafka", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceKafkaParams{Host: "kafka", Port: 9092})}
+	mKafka = smpb.CreateRequest{ID: "som-0123456789012347", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeKafka, Name: "kafka", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceKafkaParams{Host: "dataworkbench-kafka-for-test", Port: 9092})}
 	mNameExists = smpb.CreateRequest{ID: "som-0123456789012348", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
 	mNameError = smpb.CreateRequest{ID: "som-0123456789012349", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "hello.world", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
 	mNewSpace = smpb.CreateRequest{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "newspace", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
@@ -96,7 +96,7 @@ func mainInit(t *testing.T) {
 	tUdfs = smpb.SotCreateRequest{ID: "sot-0123456789012362", SourceID: mMysql.ID, Name: "udfs", Comment: "udfs", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}}), TabType: constants.TableTypeCommon}
 	tUdfd = smpb.SotCreateRequest{ID: "sot-0123456789012363", SourceID: mMysql.ID, Name: "udfd", Comment: "udfd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}}), TabType: constants.TableTypeCommon}
 
-	address := "127.0.0.1:50001"
+	address := "127.0.0.1:9104"
 	lp := glog.NewDefault()
 	ctx = glog.WithContext(context.Background(), lp)
 
@@ -175,7 +175,7 @@ func Test_PingSource(t *testing.T) {
 	p.Url = mKafka.Url
 	p.EngineType = mKafka.EngineType
 	_, err = client.PingSource(ctx, &p)
-	require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
+	require.Nil(t, err, "%+v", err)
 
 	p.SourceType = mS3.SourceType
 	p.Url = mS3.Url

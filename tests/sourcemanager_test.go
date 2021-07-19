@@ -101,8 +101,8 @@ func mainInit(t *testing.T) {
 	TableHbaseSource = smpb.SotCreateRequest{ID: "sot-0123456789012364", SourceID: HbaseManager.ID, Name: "testsource", Comment: "hbase source", Url: typeToJsonString(constants.FlinkTableDefineHbase{SqlColumn: []string{"rowkey STRING", "columna ROW<a STRING>"}})}
 	TableHbaseDest = smpb.SotCreateRequest{ID: "sot-0123456789012365", SourceID: HbaseManager.ID, Name: "testdest", Comment: "hbase dest", Url: typeToJsonString(constants.FlinkTableDefineHbase{SqlColumn: []string{"rowkey STRING", "columna ROW<a STRING>"}})}
 
-	//address := "127.0.0.1:9104"
-	address := "127.0.0.1:50001"
+	address := "127.0.0.1:9104"
+	//address := "127.0.0.1:50001"
 	lp := glog.NewDefault()
 	ctx = glog.WithContext(context.Background(), lp)
 

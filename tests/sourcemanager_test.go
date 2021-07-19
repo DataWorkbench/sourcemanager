@@ -17,36 +17,39 @@ import (
 	"github.com/DataWorkbench/gproto/pkg/smpb"
 )
 
-var mMysql smpb.CreateRequest //name mysql
-var mPG smpb.CreateRequest
-var mKafka smpb.CreateRequest
-var mNewSpace smpb.CreateRequest        // name mysql
-var mNameExists smpb.CreateRequest      //create failed
-var mNameError smpb.CreateRequest       //create failed
-var mJsonError smpb.CreateRequest       //create failed
-var mEngintTypeError smpb.CreateRequest //create failed
-var mSourceTypeError smpb.CreateRequest //create failed
-var mS3 smpb.CreateRequest
-var mCK smpb.CreateRequest
+// manager
+var MysqlManager smpb.CreateRequest //name mysql
+var PGManager smpb.CreateRequest
+var KafkaManager smpb.CreateRequest
+var NewSpaceManager smpb.CreateRequest        // name mysql
+var NameExistsManager smpb.CreateRequest      //create failed
+var NameErrorManager smpb.CreateRequest       //create failed
+var JsonErrorManager smpb.CreateRequest       //create failed
+var EngineTypeErrorManager smpb.CreateRequest //create failed
+var SourceTypeErrorManager smpb.CreateRequest //create failed
+var S3Manager smpb.CreateRequest
+var ClickHouseManager smpb.CreateRequest
+var HbaseManager smpb.CreateRequest
 
-var tPG smpb.SotCreateRequest
-var tKafka smpb.SotCreateRequest
-var tMysql smpb.SotCreateRequest
-var tMysqlDest smpb.SotCreateRequest
-var tDimensionError smpb.SotCreateRequest
-var tNameExists smpb.SotCreateRequest
-var tNameError smpb.SotCreateRequest
-var tJsonError smpb.SotCreateRequest
-var tManagerError smpb.SotCreateRequest
-var tmw smpb.SotCreateRequest
-var tmwd smpb.SotCreateRequest
-var tmc smpb.SotCreateRequest
-var tmcd smpb.SotCreateRequest
-var ts3s smpb.SotCreateRequest
-var ts3d smpb.SotCreateRequest
-var tCKd smpb.SotCreateRequest // click support sink only.
-var tUdfs smpb.SotCreateRequest
-var tUdfd smpb.SotCreateRequest
+var TablePG smpb.SotCreateRequest
+var TableKafka smpb.SotCreateRequest
+var TableMysqlSource smpb.SotCreateRequest
+var TableMysqlDest smpb.SotCreateRequest
+var TableNameExists smpb.SotCreateRequest
+var TableNameError smpb.SotCreateRequest
+var TableJsonError smpb.SotCreateRequest
+var TableManagerError smpb.SotCreateRequest
+var TableMysqlDimensionSource smpb.SotCreateRequest
+var TableMysqlDimensionDest smpb.SotCreateRequest
+var TableMysqlCommonSource smpb.SotCreateRequest
+var TableMysqlCommonDest smpb.SotCreateRequest
+var TableS3Source smpb.SotCreateRequest
+var TableS3Dest smpb.SotCreateRequest
+var TableClickHouseDest smpb.SotCreateRequest // click support sink only.
+var TableUDFSource smpb.SotCreateRequest
+var TableUDFDest smpb.SotCreateRequest
+var TableHbaseSource smpb.SotCreateRequest
+var TableHbaseDest smpb.SotCreateRequest
 
 func typeToJsonString(v interface{}) string {
 	s, _ := json.Marshal(&v)
@@ -64,39 +67,42 @@ func mainInit(t *testing.T) {
 	initDone = true
 
 	// Source Manager
-	mMysql = smpb.CreateRequest{ID: "som-0123456789012345", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "password", Host: "dataworkbench-db", Port: 3306, Database: "data_workbench"})}
-	mPG = smpb.CreateRequest{ID: "som-0123456789012346", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypePostgreSQL, Name: "pg", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourcePostgreSQLParams{User: "lzzhang", Password: "123456", Host: "127.0.0.1", Port: 5432, Database: "lzzhang"})}
-	mKafka = smpb.CreateRequest{ID: "som-0123456789012347", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeKafka, Name: "kafka", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceKafkaParams{Host: "dataworkbench-kafka-for-test", Port: 9092})}
-	mNameExists = smpb.CreateRequest{ID: "som-0123456789012348", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	mNameError = smpb.CreateRequest{ID: "som-0123456789012349", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "hello.world", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	mNewSpace = smpb.CreateRequest{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "newspace", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	mJsonError = smpb.CreateRequest{ID: "som-0123456789012351", SpaceID: "wks-0123456789012346", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: "Error.json . error"}
-	mEngintTypeError = smpb.CreateRequest{ID: "som-0123456789012352", SpaceID: "wks-0123456789012346", EngineType: "NotFlink", SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	mSourceTypeError = smpb.CreateRequest{ID: "som-0123456789012353", SpaceID: "wks-0123456789012346", EngineType: constants.ServerTypeFlink, SourceType: "ErrorSourceType", Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	mS3 = smpb.CreateRequest{ID: "som-0123456789012354", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeS3, Name: "s3", Comment: "qingcloud s3", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceS3Params{AccessKey: "RDTHDPNFWWDNWPIHESWK", SecretKey: "sVbVhAUsKGPPdiTOPAgveqCNhFjtvXFNpsPnQ7Hx", EndPoint: "http://s3.gd2.qingstor.com"})} // s3 not is url bucket
-	mCK = smpb.CreateRequest{ID: "som-0123456789012355", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeClickHouse, Name: "clickhouse", Comment: "clickhouse", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceClickHouseParams{User: "default", Password: "", Host: "127.0.0.1", Port: 8123, Database: "default"})}
+	MysqlManager = smpb.CreateRequest{ID: "som-0123456789012345", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "password", Host: "dataworkbench-db", Port: 3306, Database: "data_workbench"})}
+	PGManager = smpb.CreateRequest{ID: "som-0123456789012346", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypePostgreSQL, Name: "pg", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourcePostgreSQLParams{User: "lzzhang", Password: "123456", Host: "127.0.0.1", Port: 5432, Database: "lzzhang"})}
+	KafkaManager = smpb.CreateRequest{ID: "som-0123456789012347", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeKafka, Name: "kafka", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceKafkaParams{Host: "dataworkbench-kafka-for-test", Port: 9092})}
+	NameExistsManager = smpb.CreateRequest{ID: "som-0123456789012348", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	NameErrorManager = smpb.CreateRequest{ID: "som-0123456789012349", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "hello.world", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	NewSpaceManager = smpb.CreateRequest{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "newspace", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	JsonErrorManager = smpb.CreateRequest{ID: "som-0123456789012351", SpaceID: "wks-0123456789012346", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: "Error.json . error"}
+	EngineTypeErrorManager = smpb.CreateRequest{ID: "som-0123456789012352", SpaceID: "wks-0123456789012346", EngineType: "NotFlink", SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	SourceTypeErrorManager = smpb.CreateRequest{ID: "som-0123456789012353", SpaceID: "wks-0123456789012346", EngineType: constants.ServerTypeFlink, SourceType: "ErrorSourceType", Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
+	S3Manager = smpb.CreateRequest{ID: "som-0123456789012354", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeS3, Name: "s3", Comment: "qingcloud s3", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceS3Params{AccessKey: "RDTHDPNFWWDNWPIHESWK", SecretKey: "sVbVhAUsKGPPdiTOPAgveqCNhFjtvXFNpsPnQ7Hx", EndPoint: "http://s3.gd2.qingstor.com"})} // s3 not is url bucket
+	ClickHouseManager = smpb.CreateRequest{ID: "som-0123456789012355", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeClickHouse, Name: "clickhouse", Comment: "clickhouse", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceClickHouseParams{User: "default", Password: "", Host: "127.0.0.1", Port: 8123, Database: "default"})}
+	HbaseManager = smpb.CreateRequest{ID: "som-0123456789012356", SpaceID: "wks-0123456789012345", EngineType: constants.ServerTypeFlink, SourceType: constants.SourceTypeHbase, Name: "hbase", Comment: "hbase", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceHbaseParams{Zookeeper: "hbase:2181", Znode: "/hbase"})}
 
 	// Source Tables
-	tPG = smpb.SotCreateRequest{ID: "sot-0123456789012345", SourceID: mPG.ID, Name: "pd", Comment: "postgresql", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeDimension}
-	tKafka = smpb.SotCreateRequest{ID: "sot-0123456789012346", SourceID: mKafka.ID, Name: "billing", Comment: "Kafka", Url: typeToJsonString(constants.FlinkTableDefineKafka{SqlColumn: []string{"paycount bigint", "paymoney string", "tproctime AS PROCTIME()"}, Topic: "workbench", Format: "json", ConnectorOptions: []string{"'json.fail-on-missing-field' = 'false'", "'json.ignore-parse-errors' = 'true'"}}), TabType: constants.TableTypeCommon} //{"paycount": 2, "paymoney": "EUR"} {"paycount": 1, "paymoney": "USD"}
-	tMysql = smpb.SotCreateRequest{ID: "sot-0123456789012347", SourceID: mMysql.ID, Name: "ms", Comment: "mysql", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
-	tMysqlDest = smpb.SotCreateRequest{ID: "sot-0123456789012348", SourceID: mMysql.ID, Name: "pd", Comment: "mysqldest", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
-	tDimensionError = smpb.SotCreateRequest{ID: "sot-0123456789012350", SourceID: mKafka.ID, Name: "dimensionerror", Comment: "Kafka", Url: typeToJsonString(constants.FlinkTableDefineKafka{SqlColumn: []string{"paycount bigint", "paymoney string", "tproctime AS PROCTIME()"}, Topic: "workbench", Format: "json", ConnectorOptions: []string{"'json.fail-on-missing-field' = 'false'", "'json.ignore-parse-errors' = 'true'"}}), TabType: constants.TableTypeDimension}
-	tNameExists = smpb.SotCreateRequest{ID: "sot-0123456789012351", SourceID: mMysql.ID, Name: "ms", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
-	tNameError = smpb.SotCreateRequest{ID: "sot-0123456789012352", SourceID: mMysql.ID, Name: "ms.ms", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
-	tJsonError = smpb.SotCreateRequest{ID: "sot-0123456789012353", SourceID: mMysql.ID, Name: "ms1", Comment: "to pd", Url: "sss,xx,xx, xx", TabType: constants.TableTypeCommon}
-	tManagerError = smpb.SotCreateRequest{ID: "sot-0123456789012354", SourceID: "sot-xxxxyyyyzzzzxxxx", Name: "ms2", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
-	tmw = smpb.SotCreateRequest{ID: "sot-0123456789012355", SourceID: mMysql.ID, Name: "mw", Comment: "join dimension table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeDimension}
-	tmwd = smpb.SotCreateRequest{ID: "sot-0123456789012356", SourceID: mMysql.ID, Name: "mwd", Comment: "join dimension table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}}), TabType: constants.TableTypeCommon}
-	tmc = smpb.SotCreateRequest{ID: "sot-0123456789012357", SourceID: mMysql.ID, Name: "mc", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}}), TabType: constants.TableTypeCommon}
-	tmcd = smpb.SotCreateRequest{ID: "sot-0123456789012358", SourceID: mMysql.ID, Name: "mcd", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}}), TabType: constants.TableTypeCommon} //'connector.write.flush.max-rows' = '1'
-	ts3s = smpb.SotCreateRequest{ID: "sot-0123456789012359", SourceID: mS3.ID, Name: "s3s", Comment: "s3 source", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/source", Format: "json"}), TabType: constants.TableTypeCommon}
-	ts3d = smpb.SotCreateRequest{ID: "sot-0123456789012360", SourceID: mS3.ID, Name: "s3d", Comment: "s3 destination", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/destination", Format: "json"}), TabType: constants.TableTypeCommon}
-	tCKd = smpb.SotCreateRequest{ID: "sot-0123456789012361", SourceID: mCK.ID, Name: "ck", Comment: "clickhouse destination", Url: typeToJsonString(constants.FlinkTableDefineClickHouse{SqlColumn: []string{"id bigint", "id1 bigint"}}), TabType: constants.TableTypeCommon}
-	tUdfs = smpb.SotCreateRequest{ID: "sot-0123456789012362", SourceID: mMysql.ID, Name: "udfs", Comment: "udfs", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}}), TabType: constants.TableTypeCommon}
-	tUdfd = smpb.SotCreateRequest{ID: "sot-0123456789012363", SourceID: mMysql.ID, Name: "udfd", Comment: "udfd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}}), TabType: constants.TableTypeCommon}
+	TablePG = smpb.SotCreateRequest{ID: "sot-0123456789012345", SourceID: PGManager.ID, Name: "pd", Comment: "postgresql", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []string{"id bigint", "id1 bigint"}})}
+	TableKafka = smpb.SotCreateRequest{ID: "sot-0123456789012346", SourceID: KafkaManager.ID, Name: "billing", Comment: "Kafka", Url: typeToJsonString(constants.FlinkTableDefineKafka{SqlColumn: []string{"paycount bigint", "paymoney string", "tproctime AS PROCTIME()"}, Topic: "workbench", Format: "json", ConnectorOptions: []string{"'json.fail-on-missing-field' = 'false'", "'json.ignore-parse-errors' = 'true'"}})} //{"paycount": 2, "paymoney": "EUR"} {"paycount": 1, "paymoney": "USD"}
+	TableMysqlSource = smpb.SotCreateRequest{ID: "sot-0123456789012347", SourceID: MysqlManager.ID, Name: "ms", Comment: "mysql", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}})}
+	TableMysqlDest = smpb.SotCreateRequest{ID: "sot-0123456789012348", SourceID: MysqlManager.ID, Name: "pd", Comment: "mysqldest", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}})}
+	TableNameExists = smpb.SotCreateRequest{ID: "sot-0123456789012351", SourceID: MysqlManager.ID, Name: "ms", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}})}
+	TableNameError = smpb.SotCreateRequest{ID: "sot-0123456789012352", SourceID: MysqlManager.ID, Name: "ms.ms", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}})}
+	TableJsonError = smpb.SotCreateRequest{ID: "sot-0123456789012353", SourceID: MysqlManager.ID, Name: "ms1", Comment: "to pd", Url: "sss,xx,xx, xx"}
+	TableManagerError = smpb.SotCreateRequest{ID: "sot-0123456789012354", SourceID: "sot-xxxxyyyyzzzzxxxx", Name: "ms2", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"id bigint", "id1 bigint"}})}
+	TableMysqlDimensionSource = smpb.SotCreateRequest{ID: "sot-0123456789012355", SourceID: MysqlManager.ID, Name: "mw", Comment: "join dimension table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}})}
+	TableMysqlDimensionDest = smpb.SotCreateRequest{ID: "sot-0123456789012356", SourceID: MysqlManager.ID, Name: "mwd", Comment: "join dimension table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}})}
+	TableMysqlCommonSource = smpb.SotCreateRequest{ID: "sot-0123456789012357", SourceID: MysqlManager.ID, Name: "mc", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"rate bigint", "dbmoney varchar(8)"}})}
+	TableMysqlCommonDest = smpb.SotCreateRequest{ID: "sot-0123456789012358", SourceID: MysqlManager.ID, Name: "mcd", Comment: "join common table", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"total bigint"}})} //'connector.write.flush.max-rows' = '1'
+	TableS3Source = smpb.SotCreateRequest{ID: "sot-0123456789012359", SourceID: S3Manager.ID, Name: "s3s", Comment: "s3 source", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/source", Format: "json"})}
+	TableS3Dest = smpb.SotCreateRequest{ID: "sot-0123456789012360", SourceID: S3Manager.ID, Name: "s3d", Comment: "s3 destination", Url: typeToJsonString(constants.FlinkTableDefineS3{SqlColumn: []string{"id bigint", "id1 bigint"}, Path: "s3a://filesystem/destination", Format: "json"})}
+	TableClickHouseDest = smpb.SotCreateRequest{ID: "sot-0123456789012361", SourceID: ClickHouseManager.ID, Name: "ck", Comment: "clickhouse destination", Url: typeToJsonString(constants.FlinkTableDefineClickHouse{SqlColumn: []string{"id bigint", "id1 bigint"}})}
+	TableUDFSource = smpb.SotCreateRequest{ID: "sot-0123456789012362", SourceID: MysqlManager.ID, Name: "udfs", Comment: "udfs", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}})}
+	TableUDFDest = smpb.SotCreateRequest{ID: "sot-0123456789012363", SourceID: MysqlManager.ID, Name: "udfd", Comment: "udfd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []string{"a varchar(10)"}})}
+	TableHbaseSource = smpb.SotCreateRequest{ID: "sot-0123456789012364", SourceID: HbaseManager.ID, Name: "testsource", Comment: "hbase source", Url: typeToJsonString(constants.FlinkTableDefineHbase{SqlColumn: []string{"rowkey STRING", "columna ROW<a STRING>"}})}
+	TableHbaseDest = smpb.SotCreateRequest{ID: "sot-0123456789012365", SourceID: HbaseManager.ID, Name: "testdest", Comment: "hbase dest", Url: typeToJsonString(constants.FlinkTableDefineHbase{SqlColumn: []string{"rowkey STRING", "columna ROW<a STRING>"}})}
 
-	address := "127.0.0.1:9104"
+	//address := "127.0.0.1:9104"
+	address := "127.0.0.1:50001"
 	lp := glog.NewDefault()
 	ctx = glog.WithContext(context.Background(), lp)
 
@@ -127,27 +133,29 @@ func Test_Create(t *testing.T) {
 	Clean(t)
 	var err error
 
-	_, err = client.Create(ctx, &mMysql)
+	_, err = client.Create(ctx, &MysqlManager)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.Create(ctx, &mPG)
+	_, err = client.Create(ctx, &PGManager)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.Create(ctx, &mKafka)
+	_, err = client.Create(ctx, &KafkaManager)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.Create(ctx, &mNewSpace)
+	_, err = client.Create(ctx, &NewSpaceManager)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.Create(ctx, &mNameError)
+	_, err = client.Create(ctx, &NameErrorManager)
 	require.Equal(t, errorCode(err), qerror.InvalidSourceName.Code())
-	_, err = client.Create(ctx, &mNameExists)
+	_, err = client.Create(ctx, &NameExistsManager)
 	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
-	_, err = client.Create(ctx, &mJsonError)
+	_, err = client.Create(ctx, &JsonErrorManager)
 	require.Equal(t, errorCode(err), qerror.InvalidJSON.Code())
-	_, err = client.Create(ctx, &mSourceTypeError)
+	_, err = client.Create(ctx, &SourceTypeErrorManager)
 	require.Equal(t, errorCode(err), qerror.NotSupportSourceType.Code())
-	_, err = client.Create(ctx, &mEngintTypeError)
+	_, err = client.Create(ctx, &EngineTypeErrorManager)
 	require.Equal(t, errorCode(err), qerror.NotSupportEngineType.Code())
-	_, err = client.Create(ctx, &mS3)
+	_, err = client.Create(ctx, &S3Manager)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.Create(ctx, &mCK)
+	_, err = client.Create(ctx, &ClickHouseManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &HbaseManager)
 	require.Nil(t, err, "%+v", err)
 }
 
@@ -157,37 +165,43 @@ func Test_PingSource(t *testing.T) {
 	var p smpb.PingSourceRequest
 	var err error
 
-	p.SourceType = mMysql.SourceType
-	p.Url = mMysql.Url
-	p.EngineType = mMysql.EngineType
+	p.SourceType = MysqlManager.SourceType
+	p.Url = MysqlManager.Url
+	p.EngineType = MysqlManager.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Nil(t, err, "%+v", err)
 
-	p.SourceType = mPG.SourceType
-	p.Url = mPG.Url
-	p.EngineType = mPG.EngineType
+	p.SourceType = PGManager.SourceType
+	p.Url = PGManager.Url
+	p.EngineType = PGManager.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
 
-	p.SourceType = mKafka.SourceType
-	p.Url = mKafka.Url
-	p.EngineType = mKafka.EngineType
+	p.SourceType = KafkaManager.SourceType
+	p.Url = KafkaManager.Url
+	p.EngineType = KafkaManager.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Nil(t, err, "%+v", err)
 
-	p.SourceType = mS3.SourceType
-	p.Url = mS3.Url
-	p.EngineType = mS3.EngineType
+	p.SourceType = S3Manager.SourceType
+	p.Url = S3Manager.Url
+	p.EngineType = S3Manager.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Nil(t, err, "%+v", err)
 	//require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
 
-	p.SourceType = mCK.SourceType
-	p.Url = mCK.Url
-	p.EngineType = mCK.EngineType
+	p.SourceType = ClickHouseManager.SourceType
+	p.Url = ClickHouseManager.Url
+	p.EngineType = ClickHouseManager.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
 	//require.Nil(t, err, "%+v", err)
+
+	p.SourceType = HbaseManager.SourceType
+	p.Url = HbaseManager.Url
+	p.EngineType = HbaseManager.EngineType
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
 }
 
 func Test_EngineMap(t *testing.T) {
@@ -202,7 +216,8 @@ func Test_EngineMap(t *testing.T) {
 	require.Equal(t, strings.Split(reply.SourceType, ",")[2], constants.SourceTypeKafka)
 	require.Equal(t, strings.Split(reply.SourceType, ",")[3], constants.SourceTypeS3)
 	require.Equal(t, strings.Split(reply.SourceType, ",")[4], constants.SourceTypeClickHouse)
-	require.Equal(t, len(strings.Split(reply.SourceType, ",")), 5)
+	require.Equal(t, strings.Split(reply.SourceType, ",")[5], constants.SourceTypeHbase)
+	require.Equal(t, len(strings.Split(reply.SourceType, ",")), 6)
 }
 
 func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
@@ -211,27 +226,31 @@ func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
 	var rep *smpb.InfoReply
 
 	if id == "" {
-		d.ID = mMysql.ID
+		d.ID = MysqlManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
-		d.ID = mPG.ID
+		d.ID = PGManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
-		d.ID = mKafka.ID
+		d.ID = KafkaManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
-		d.ID = mNewSpace.ID
+		d.ID = NewSpaceManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
-		d.ID = mS3.ID
+		d.ID = S3Manager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
-		d.ID = mCK.ID
+		d.ID = ClickHouseManager.ID
+		rep, err = client.Describe(ctx, &d)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, d.ID, rep.ID)
+		d.ID = HbaseManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, d.ID, rep.ID)
@@ -258,17 +277,17 @@ func Clean(t *testing.T) {
 		d   smpb.DeleteAllRequest
 	)
 
-	d.SpaceID = mMysql.SpaceID
+	d.SpaceID = MysqlManager.SpaceID
 	_, err = client.DeleteAll(ctx, &d)
 	require.Nil(t, err, "%+v", err)
-	//for _, info := range managerLists(t, mMysql.SpaceID).Infos {
+	//for _, info := range managerLists(t, MysqlManager.SpaceID).Infos {
 	//	for _, table := range tablesLists(t, info.ID).Infos {
 	//		tablesDelete(t, table.ID)
 	//	}
 	//	managerDelete(t, info.ID, false)
 	//}
 
-	for _, info := range managerLists(t, mNewSpace.SpaceID).Infos {
+	for _, info := range managerLists(t, NewSpaceManager.SpaceID).Infos {
 		for _, table := range tablesLists(t, info.ID).Infos {
 			tablesDelete(t, table.ID)
 		}
@@ -282,13 +301,13 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 	var err error
 
 	if SpaceID == "" {
-		i.SpaceID = mMysql.SpaceID
+		i.SpaceID = MysqlManager.SpaceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 5)
-		i.SpaceID = mNewSpace.SpaceID
+		require.Equal(t, len(rep.Infos), 6)
+		i.SpaceID = NewSpaceManager.SpaceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
@@ -317,26 +336,29 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 
 	if id == "" {
 		if iserror == false {
-			i.ID = mMysql.ID
+			i.ID = MysqlManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
-			i.ID = mPG.ID
+			i.ID = PGManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
-			i.ID = mKafka.ID
+			i.ID = KafkaManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
-			i.ID = mS3.ID
+			i.ID = S3Manager.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
-			i.ID = mCK.ID
+			i.ID = ClickHouseManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
-			i.ID = mNewSpace.ID
+			i.ID = HbaseManager.ID
+			_, err = client.Delete(ctx, &i)
+			require.Nil(t, err, "%+v", err)
+			i.ID = NewSpaceManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
 		} else {
-			i.ID = mMysql.ID
+			i.ID = MysqlManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.NotNil(t, err, "%+v", err)
 			require.Equal(t, errorCode(err), qerror.ResourceIsUsing.Code())
@@ -352,19 +374,19 @@ func Test_Update(t *testing.T) {
 	var i smpb.UpdateRequest
 	var err error
 
-	i.Name = mMysql.Name
-	i.ID = mMysql.ID
+	i.Name = MysqlManager.Name
+	i.ID = MysqlManager.ID
 	i.Comment = "updateok"
-	i.SourceType = mMysql.SourceType
-	i.Url = mMysql.Url
+	i.SourceType = MysqlManager.SourceType
+	i.Url = MysqlManager.Url
 	_, err = client.Update(ctx, &i)
 	require.Nil(t, err, "%+v", err)
 	require.Equal(t, i.Comment, managerDescribe(t, i.ID).Comment)
 
-	i.Name = mPG.Name
-	i.ID = mMysql.ID
-	i.SourceType = mMysql.SourceType
-	i.Url = mMysql.Url
+	i.Name = PGManager.Name
+	i.ID = MysqlManager.ID
+	i.SourceType = MysqlManager.SourceType
+	i.Url = MysqlManager.Url
 	_, err = client.Update(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
@@ -373,45 +395,46 @@ func Test_Update(t *testing.T) {
 // Source Tables
 func Test_SotCreate(t *testing.T) {
 	var err error
-	_, err = client.SotCreate(ctx, &tPG)
+	_, err = client.SotCreate(ctx, &TablePG)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tKafka)
+	_, err = client.SotCreate(ctx, &TableKafka)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tMysql)
+	_, err = client.SotCreate(ctx, &TableMysqlSource)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tMysqlDest)
+	_, err = client.SotCreate(ctx, &TableMysqlDest)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tDimensionError)
-	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.InvalidDimensionSource.Code())
-	_, err = client.SotCreate(ctx, &tNameExists)
+	_, err = client.SotCreate(ctx, &TableNameExists)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
-	_, err = client.SotCreate(ctx, &tNameError)
+	_, err = client.SotCreate(ctx, &TableNameError)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, errorCode(err), qerror.InvalidSourceName.Code())
-	_, err = client.SotCreate(ctx, &tJsonError)
+	_, err = client.SotCreate(ctx, &TableJsonError)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, errorCode(err), qerror.InvalidJSON.Code())
-	_, err = client.SotCreate(ctx, &tManagerError)
+	_, err = client.SotCreate(ctx, &TableManagerError)
 	require.NotNil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tmw)
+	_, err = client.SotCreate(ctx, &TableMysqlDimensionSource)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tmwd)
+	_, err = client.SotCreate(ctx, &TableMysqlDimensionDest)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tmc)
+	_, err = client.SotCreate(ctx, &TableMysqlCommonSource)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tmcd)
+	_, err = client.SotCreate(ctx, &TableMysqlCommonDest)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &ts3s)
+	_, err = client.SotCreate(ctx, &TableS3Source)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &ts3d)
+	_, err = client.SotCreate(ctx, &TableS3Dest)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tCKd)
+	_, err = client.SotCreate(ctx, &TableClickHouseDest)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tUdfs)
+	_, err = client.SotCreate(ctx, &TableUDFSource)
 	require.Nil(t, err, "%+v", err)
-	_, err = client.SotCreate(ctx, &tUdfd)
+	_, err = client.SotCreate(ctx, &TableUDFDest)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &TableHbaseSource)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &TableHbaseDest)
 	require.Nil(t, err, "%+v", err)
 }
 
@@ -421,40 +444,47 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 	var rep *smpb.SotListsReply
 
 	if SourceID == "" {
-		i.SourceID = tPG.SourceID
+		i.SourceID = TablePG.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 
-		i.SourceID = tMysql.SourceID
+		i.SourceID = TableMysqlSource.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 8)
 
-		i.SourceID = tKafka.SourceID
+		i.SourceID = TableKafka.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
 
-		i.SourceID = ts3s.SourceID
+		i.SourceID = TableS3Source.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 2)
 
-		i.SourceID = tCKd.SourceID
+		i.SourceID = TableClickHouseDest.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, len(rep.Infos), 1)
+
+		i.SourceID = TableHbaseSource.SourceID
+		i.Limit = 100
+		i.Offset = 0
+		rep, err = client.SotList(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, len(rep.Infos), 2)
 	} else {
 		i.SourceID = SourceID
 		i.Limit = 100
@@ -475,43 +505,49 @@ func tablesDelete(t *testing.T, id string) {
 	var err error
 
 	if id == "" {
-		i.ID = tPG.ID
+		i.ID = TablePG.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tKafka.ID
+		i.ID = TableKafka.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tMysql.ID
+		i.ID = TableMysqlSource.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tMysqlDest.ID
+		i.ID = TableMysqlDest.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tmw.ID
+		i.ID = TableMysqlDimensionSource.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tmwd.ID
+		i.ID = TableMysqlDimensionDest.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tmc.ID
+		i.ID = TableMysqlCommonSource.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tmcd.ID
+		i.ID = TableMysqlCommonDest.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = ts3s.ID
+		i.ID = TableS3Source.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = ts3d.ID
+		i.ID = TableS3Dest.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tCKd.ID
+		i.ID = TableClickHouseDest.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tUdfs.ID
+		i.ID = TableUDFSource.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tUdfd.ID
+		i.ID = TableUDFDest.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = TableHbaseSource.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = TableHbaseDest.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 	} else {
@@ -527,31 +563,37 @@ func tablesDescribe(t *testing.T, id string) *smpb.SotInfoReply {
 	var rep *smpb.SotInfoReply
 
 	if id == "" {
-		i.ID = tPG.ID
+		i.ID = TablePG.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tKafka.ID
+		i.ID = TableKafka.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tMysql.ID
+		i.ID = TableMysqlSource.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tMysqlDest.ID
+		i.ID = TableMysqlDest.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = ts3s.ID
+		i.ID = TableS3Source.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = ts3d.ID
+		i.ID = TableS3Dest.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tCKd.ID
+		i.ID = TableClickHouseDest.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tUdfs.ID
+		i.ID = TableUDFSource.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.ID = tUdfd.ID
+		i.ID = TableUDFDest.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = TableHbaseSource.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = TableHbaseDest.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 	} else {
@@ -572,42 +614,30 @@ func Test_SotUpdate(t *testing.T) {
 	var err error
 
 	i.Comment = "tablesUpdate"
-	i.ID = tMysql.ID
-	i.Name = tMysql.Name
-	i.Url = tMysql.Url
-	i.TabType = tMysql.TabType
+	i.ID = TableMysqlSource.ID
+	i.Name = TableMysqlSource.Name
+	i.Url = TableMysqlSource.Url
 	_, err = client.SotUpdate(ctx, &i)
 	require.Nil(t, err, "%+v", err)
 	require.Equal(t, i.Comment, tablesDescribe(t, i.ID).Comment)
 
-	i.ID = tMysql.ID
+	i.ID = TableMysqlSource.ID
 	i.Name = "xx.xx"
-	i.Url = tMysql.Url
-	i.TabType = tMysql.TabType
+	i.Url = TableMysqlSource.Url
 	_, err = client.SotUpdate(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, errorCode(err), qerror.InvalidSourceName.Code())
 
-	i.ID = tKafka.ID
-	i.Name = tKafka.Name
-	i.Url = tKafka.Url
-	i.TabType = constants.TableTypeDimension
-	_, err = client.SotUpdate(ctx, &i)
-	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.InvalidDimensionSource.Code())
-
-	i.ID = tKafka.ID
-	i.Name = tKafka.Name
+	i.ID = TableKafka.ID
+	i.Name = TableKafka.Name
 	i.Url = "err, json, url"
-	i.TabType = tKafka.TabType
 	_, err = client.SotUpdate(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, errorCode(err), qerror.InvalidJSON.Code())
 
-	i.ID = tMysql.ID
-	i.Name = tMysqlDest.Name
-	i.Url = tMysql.Url
-	i.TabType = tMysql.TabType
+	i.ID = TableMysqlSource.ID
+	i.Name = TableMysqlDest.Name
+	i.Url = TableMysqlSource.Url
 	_, err = client.SotUpdate(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())

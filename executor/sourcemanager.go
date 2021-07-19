@@ -48,7 +48,6 @@ type SourceTablesInfo struct {
 	Url        string `gorm:"column:url;"`
 	CreateTime string `gorm:"column:createtime;"`
 	UpdateTime string `gorm:"column:updatetime;"`
-	TabType    string `gorm:"column:tabtype;"`
 }
 
 func (smi SourcemanagerInfo) TableName() string {
@@ -78,7 +77,7 @@ func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecuto
 
 func (ex *SourcemanagerExecutor) GetSourceDirection(enginetype string, sourcetype string) (direction string, err error) {
 	if enginetype == constants.ServerTypeFlink {
-		if sourcetype == constants.SourceTypeMysql || sourcetype == constants.SourceTypePostgreSQL || sourcetype == constants.SourceTypeKafka || sourcetype == constants.SourceTypeS3 {
+		if sourcetype == constants.SourceTypeMysql || sourcetype == constants.SourceTypePostgreSQL || sourcetype == constants.SourceTypeKafka || sourcetype == constants.SourceTypeS3 || sourcetype == constants.SourceTypeHbase {
 			direction = constants.DirectionSource + constants.DirectionDestination
 		} else if sourcetype == constants.SourceTypeClickHouse {
 			direction = constants.DirectionDestination
@@ -129,6 +128,13 @@ func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url string, enginetype st
 			var v constants.SourceClickHouseParams
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
 				ex.logger.Error().Error("check source clickhouse url", err).Fire()
+				err = qerror.InvalidJSON
+				return
+			}
+		} else if sourcetype == constants.SourceTypeHbase {
+			var v constants.SourceHbaseParams
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source hbase url", err).Fire()
 				err = qerror.InvalidJSON
 				return
 			}
@@ -325,6 +331,13 @@ func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url string, enginetype str
 				err = qerror.InvalidJSON
 				return err
 			}
+		} else if sourcetype == constants.SourceTypeHbase {
+			var v constants.FlinkTableDefineHbase
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source hbase define url", err).Fire()
+				err = qerror.InvalidJSON
+				return err
+			}
 		} else {
 			ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
 			err = qerror.NotSupportSourceType.Format(sourcetype)
@@ -348,11 +361,6 @@ func (ex *SourcemanagerExecutor) SotCreate(ctx context.Context, info SourceTable
 	}
 
 	sourceInfo, _ := ex.Describe(ctx, info.SourceID)
-	if info.TabType == constants.TableTypeDimension && sourceInfo.SourceType != constants.SourceTypeMysql && sourceInfo.SourceType != constants.SourceTypePostgreSQL {
-		ex.logger.Error().Error("dimension falied", fmt.Errorf("can't create dimension in the sourcemanager %s", sourceInfo.SourceType)).Fire()
-		err = qerror.InvalidDimensionSource
-		return
-	}
 
 	if err = ex.checkSourcetablesUrl(info.Url, sourceInfo.EngineType, sourceInfo.SourceType); err != nil {
 		return
@@ -388,11 +396,6 @@ func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTable
 
 	selfInfo, _ := ex.SotDescribe(ctx, info.ID)
 	sourceInfo, _ := ex.Describe(ctx, selfInfo.SourceID)
-	if info.TabType == constants.TableTypeDimension && sourceInfo.SourceType != constants.SourceTypeMysql && sourceInfo.SourceType != constants.SourceTypePostgreSQL {
-		ex.logger.Error().Error("dimension falied", fmt.Errorf("can't create dimension in the sourcemanager %s", sourceInfo.SourceType)).Fire()
-		err = qerror.InvalidDimensionSource
-		return
-	}
 
 	if err = ex.checkSourcetablesUrl(info.Url, sourceInfo.EngineType, sourceInfo.SourceType); err != nil {
 		return
@@ -407,7 +410,7 @@ func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTable
 	info.UpdateTime = time.Now().Format("2006-01-02 15:04:05")
 
 	db := ex.db.WithContext(ctx)
-	err = db.Select("name", "comment", "url", "updatetime", "tabtype").Where("id = ? ", info.ID).Updates(info).Error
+	err = db.Select("name", "comment", "url", "updatetime").Where("id = ? ", info.ID).Updates(info).Error
 	if err != nil {
 		ex.logger.Error().Error("update source table", err).Fire()
 		err = qerror.Internal

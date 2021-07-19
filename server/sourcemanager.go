@@ -34,7 +34,6 @@ func ToInfoReplay(s executor.SourcemanagerInfo) (p smpb.InfoReply) {
 func ToSotInfoReplay(s executor.SourceTablesInfo) (p smpb.SotInfoReply) {
 	p.ID = s.ID
 	p.SourceID = s.SourceID
-	p.TabType = s.TabType
 	p.Name = s.Name
 	p.Comment = s.Comment
 	p.Url = s.Url
@@ -61,7 +60,6 @@ func CrToSotInfo(p *smpb.SotCreateRequest) (s executor.SourceTablesInfo) {
 	s.Name = p.GetName()
 	s.Comment = p.GetComment()
 	s.Url = p.GetUrl()
-	s.TabType = p.GetTabType()
 	return
 }
 
@@ -137,7 +135,7 @@ func (s *SourceManagerServer) SotCreate(ctx context.Context, req *smpb.SotCreate
 }
 
 func (s *SourceManagerServer) SotUpdate(ctx context.Context, req *smpb.SotUpdateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.SotUpdate(ctx, executor.SourceTablesInfo{ID: req.GetID(), Name: req.GetName(), Comment: req.GetComment(), Url: req.GetUrl(), TabType: req.GetTabType()})
+	err := s.executor.SotUpdate(ctx, executor.SourceTablesInfo{ID: req.GetID(), Name: req.GetName(), Comment: req.GetComment(), Url: req.GetUrl()})
 	return s.emptyReply, err
 }
 

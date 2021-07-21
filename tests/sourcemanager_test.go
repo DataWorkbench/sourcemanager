@@ -653,6 +653,7 @@ func Test_Delete(t *testing.T) {
 func Test_CreateObjects(t *testing.T) {
 	Test_Create(t)
 	Test_Update(t)
+
 	Test_SotCreate(t)
 	Test_SotUpdate(t)
 }

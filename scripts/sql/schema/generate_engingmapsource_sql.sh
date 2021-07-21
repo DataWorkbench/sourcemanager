@@ -24,6 +24,6 @@ Kafka="Kafka"
 Kafka_image=`base64 -w 10000000 Kafka.png`
 Kafka_desc="Kafka是一个分布式消息队列。"
 
-sourcetype="[\"$MySQL\": {\"image\": \"$MySQL_image\", \"desc\": \"$MySQL_desc\"} ,\"$PostgreSQL\": {\"image\": \"$PostgreSQL_image\", \"desc\": \"$PostgreSQL_desc\"} ,\"$S3\": {\"image\": \"$S3_image\", \"desc\": \"$S3_desc\"} ,\"$ClickHouse\": {\"image\": \"$ClickHouse_image\", \"desc\": \"$ClickHouse_desc\"} ,\"$Hbase\": {\"image\": \"$Hbase_image\", \"desc\": \"$Hbase_desc\"} ,\"$Kafka\": {\"image\": \"$Kafka_image\", \"desc\": \"$Kafka_desc\"}]"
+sourcetype="{\"SourceList\": [\"$MySQL\": {\"image\": \"$MySQL_image\", \"desc\": \"$MySQL_desc\"} ,\"$PostgreSQL\": {\"image\": \"$PostgreSQL_image\", \"desc\": \"$PostgreSQL_desc\"} ,\"$S3\": {\"image\": \"$S3_image\", \"desc\": \"$S3_desc\"} ,\"$ClickHouse\": {\"image\": \"$ClickHouse_image\", \"desc\": \"$ClickHouse_desc\"} ,\"$Hbase\": {\"image\": \"$Hbase_image\", \"desc\": \"$Hbase_desc\"} ,\"$Kafka\": {\"image\": \"$Kafka_image\", \"desc\": \"$Kafka_desc\"}]}"
 
 echo "insert into enginemapsource values('flink', '$sourcetype');"

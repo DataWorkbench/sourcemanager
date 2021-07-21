@@ -4,7 +4,7 @@ USE data_workbench;
 
 create table enginemapsource(
 	enginetype varchar(16),
-	sourcetype logtext
+	sourcetype longtext
 ) ENGINE=InnoDB;
 
 alter table enginemapsource add constraint enginemapsource_pkey primary key(enginetype);

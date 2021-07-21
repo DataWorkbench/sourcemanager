@@ -207,17 +207,12 @@ func Test_PingSource(t *testing.T) {
 func Test_EngineMap(t *testing.T) {
 	var i smpb.EngingMapRequest
 
+	mainInit(t)
+
 	i.EngineType = "flink"
 
-	reply, err := client.EngineMap(ctx, &i)
+	_, err := client.EngineMap(ctx, &i)
 	require.Nil(t, err, "%+v", err)
-	require.Equal(t, strings.Split(reply.SourceType, ",")[0], constants.SourceTypeMysql)
-	require.Equal(t, strings.Split(reply.SourceType, ",")[1], constants.SourceTypePostgreSQL)
-	require.Equal(t, strings.Split(reply.SourceType, ",")[2], constants.SourceTypeKafka)
-	require.Equal(t, strings.Split(reply.SourceType, ",")[3], constants.SourceTypeS3)
-	require.Equal(t, strings.Split(reply.SourceType, ",")[4], constants.SourceTypeClickHouse)
-	require.Equal(t, strings.Split(reply.SourceType, ",")[5], constants.SourceTypeHbase)
-	require.Equal(t, len(strings.Split(reply.SourceType, ",")), 6)
 }
 
 func managerDescribe(t *testing.T, id string) *smpb.InfoReply {

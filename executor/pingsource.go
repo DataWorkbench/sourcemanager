@@ -172,7 +172,7 @@ func PingHbase(url string) (err error) {
 }
 
 func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype string, url string, enginetype string) (err error) {
-	if err = ex.checkSourcemanagerUrl(url, enginetype, sourcetype); err != nil {
+	if err = ex.checkSourcemanagerUrl(constants.JSONString(url), enginetype, sourcetype); err != nil {
 		return
 	}
 

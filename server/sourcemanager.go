@@ -24,7 +24,7 @@ func ToInfoReplay(s executor.SourcemanagerInfo) (p smpb.InfoReply) {
 	p.Name = s.Name
 	p.SourceType = s.SourceType
 	p.SpaceID = s.SpaceID
-	p.Url = s.Url
+	p.Url = string(s.Url)
 	p.UpdateTime = s.UpdateTime
 	p.EngineType = s.EngineType
 	p.Direction = s.Direction
@@ -36,7 +36,7 @@ func ToSotInfoReplay(s executor.SourceTablesInfo) (p smpb.SotInfoReply) {
 	p.SourceID = s.SourceID
 	p.Name = s.Name
 	p.Comment = s.Comment
-	p.Url = s.Url
+	p.Url = string(s.Url)
 	p.CreateTime = s.CreateTime
 	p.UpdateTime = s.UpdateTime
 	return
@@ -48,7 +48,7 @@ func CrToSmInfo(p *smpb.CreateRequest) (s executor.SourcemanagerInfo) {
 	s.Name = p.GetName()
 	s.SourceType = p.GetSourceType()
 	s.SpaceID = p.GetSpaceID()
-	s.Url = p.GetUrl()
+	s.Url = constants.JSONString(p.GetUrl())
 	s.ID = p.GetID()
 	s.EngineType = p.GetEngineType()
 	return
@@ -59,7 +59,7 @@ func CrToSotInfo(p *smpb.SotCreateRequest) (s executor.SourceTablesInfo) {
 	s.SourceID = p.GetSourceID()
 	s.Name = p.GetName()
 	s.Comment = p.GetComment()
-	s.Url = p.GetUrl()
+	s.Url = constants.JSONString(p.GetUrl())
 	return
 }
 
@@ -78,7 +78,7 @@ func (s *SourceManagerServer) Create(ctx context.Context, req *smpb.CreateReques
 }
 
 func (s *SourceManagerServer) Update(ctx context.Context, req *smpb.UpdateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.Update(ctx, executor.SourcemanagerInfo{ID: req.GetID(), SourceType: req.GetSourceType(), Name: req.GetName(), Comment: req.GetComment(), Url: req.GetUrl()})
+	err := s.executor.Update(ctx, executor.SourcemanagerInfo{ID: req.GetID(), SourceType: req.GetSourceType(), Name: req.GetName(), Comment: req.GetComment(), Url: constants.JSONString(req.GetUrl())})
 	return s.emptyReply, err
 }
 
@@ -135,7 +135,7 @@ func (s *SourceManagerServer) SotCreate(ctx context.Context, req *smpb.SotCreate
 }
 
 func (s *SourceManagerServer) SotUpdate(ctx context.Context, req *smpb.SotUpdateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.SotUpdate(ctx, executor.SourceTablesInfo{ID: req.GetID(), Name: req.GetName(), Comment: req.GetComment(), Url: req.GetUrl()})
+	err := s.executor.SotUpdate(ctx, executor.SourceTablesInfo{ID: req.GetID(), Name: req.GetName(), Comment: req.GetComment(), Url: constants.JSONString(req.GetUrl())})
 	return s.emptyReply, err
 }
 

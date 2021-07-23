@@ -27,27 +27,27 @@ type EngineMapInfo struct {
 }
 
 type SourcemanagerInfo struct {
-	ID         string `gorm:"column:id;primaryKey"`
-	SpaceID    string `gorm:"column:spaceid;"`
-	SourceType string `gorm:"column:sourcetype;"`
-	Name       string `gorm:"column:name;"`
-	Comment    string `gorm:"column:comment;"`
-	Creator    string `gorm:"column:creator;"`
-	Url        string `gorm:"column:url;"`
-	CreateTime string `gorm:"column:createtime;"`
-	UpdateTime string `gorm:"column:updatetime;"`
-	EngineType string `gorm:"column:enginetype;"`
-	Direction  string `gorm:"column:direction;"`
+	ID         string               `gorm:"column:id;primaryKey"`
+	SpaceID    string               `gorm:"column:spaceid;"`
+	SourceType string               `gorm:"column:sourcetype;"`
+	Name       string               `gorm:"column:name;"`
+	Comment    string               `gorm:"column:comment;"`
+	Creator    string               `gorm:"column:creator;"`
+	Url        constants.JSONString `gorm:"column:url;"`
+	CreateTime string               `gorm:"column:createtime;"`
+	UpdateTime string               `gorm:"column:updatetime;"`
+	EngineType string               `gorm:"column:enginetype;"`
+	Direction  string               `gorm:"column:direction;"`
 }
 
 type SourceTablesInfo struct {
-	ID         string `gorm:"column:id;primaryKey"`
-	SourceID   string `gorm:"column:sourceid;"`
-	Name       string `gorm:"column:name;"`
-	Comment    string `gorm:"column:comment;"`
-	Url        string `gorm:"column:url;"`
-	CreateTime string `gorm:"column:createtime;"`
-	UpdateTime string `gorm:"column:updatetime;"`
+	ID         string               `gorm:"column:id;primaryKey"`
+	SourceID   string               `gorm:"column:sourceid;"`
+	Name       string               `gorm:"column:name;"`
+	Comment    string               `gorm:"column:comment;"`
+	Url        constants.JSONString `gorm:"column:url;"`
+	CreateTime string               `gorm:"column:createtime;"`
+	UpdateTime string               `gorm:"column:updatetime;"`
 }
 
 func (smi SourcemanagerInfo) TableName() string {
@@ -94,7 +94,7 @@ func (ex *SourcemanagerExecutor) GetSourceDirection(enginetype string, sourcetyp
 	return
 }
 
-func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url string, enginetype string, sourcetype string) (err error) {
+func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url constants.JSONString, enginetype string, sourcetype string) (err error) {
 	if enginetype == constants.ServerTypeFlink {
 		if sourcetype == constants.SourceTypeMysql {
 			var v constants.SourceMysqlParams
@@ -294,7 +294,7 @@ func (ex *SourcemanagerExecutor) Describe(ctx context.Context, id string) (info 
 	return
 }
 
-func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url string, enginetype string, sourcetype string) (err error) {
+func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url constants.JSONString, enginetype string, sourcetype string) (err error) {
 	if enginetype == constants.ServerTypeFlink {
 		if sourcetype == constants.SourceTypeMysql {
 			var v constants.FlinkTableDefineMysql

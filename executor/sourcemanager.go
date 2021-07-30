@@ -35,6 +35,7 @@ type SourcemanagerInfo struct {
 	Creator    string               `gorm:"column:creator;"`
 	Url        constants.JSONString `gorm:"column:url;"`
 	CreateTime string               `gorm:"column:createtime;"`
+	State      string               `gorm:"column:state;"`
 	UpdateTime string               `gorm:"column:updatetime;"`
 	EngineType string               `gorm:"column:enginetype;"`
 	Direction  string               `gorm:"column:direction;"`
@@ -211,6 +212,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, info SourcemanagerI
 	}
 	info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 	info.UpdateTime = info.CreateTime
+	info.State = constants.SourceEnableState
 	info.Direction, err = ex.GetSourceDirection(info.EngineType, info.SourceType)
 	if err != nil {
 		ex.logger.Error().Error("create source", err).Fire()
@@ -233,7 +235,12 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerI
 		return
 	}
 
-	descInfo, _ := ex.Describe(ctx, info.ID)
+	descInfo, _ := ex.Describe(ctx, info.ID, false)
+	if descInfo.State == constants.SourceDisableState {
+		err = qerror.SourceIsDisable
+		return
+	}
+
 	if err = ex.checkSourcemanagerUrl(info.Url, descInfo.EngineType, info.SourceType); err != nil {
 		return
 	}
@@ -255,15 +262,20 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerI
 	return
 }
 
-func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string) (err error) {
-	tables, _ := ex.SotLists(ctx, id, 10, 1)
-	if len(tables) > 0 {
+func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string, checkState bool) (err error) {
+	total, _, _ := ex.SotLists(ctx, id, 10, 0)
+	if total > 0 {
 		err = qerror.ResourceIsUsing
 		return
 	}
 
-	db := ex.db.WithContext(ctx)
+	descInfo, _ := ex.Describe(ctx, id, false)
+	if descInfo.State == constants.SourceDisableState && checkState == true {
+		err = qerror.SourceIsDisable
+		return
+	}
 
+	db := ex.db.WithContext(ctx)
 	err = db.Where("id = ? ", id).Delete(&SourcemanagerInfo{}).Error
 	if err != nil {
 		ex.logger.Error().Error("delete source", err).Fire()
@@ -272,8 +284,17 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string) (err err
 	return
 }
 
-func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset int32, spaceid string) (infos []*SourcemanagerInfo, err error) {
+func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset int32, spaceid string) (total int32, infos []*SourcemanagerInfo, err error) {
+	var total64 int64
+
 	db := ex.db.WithContext(ctx)
+
+	err = db.Table(SourcemanagerTableName).Count(&total64).Where("spaceid = ? ", spaceid).Error
+	if err != nil {
+		ex.logger.Error().Error("list count", err).Fire()
+		err = qerror.Internal
+	}
+	total = int32(total64)
 
 	err = db.Table(SourcemanagerTableName).Where("spaceid = ? ", spaceid).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
 	if err != nil {
@@ -283,14 +304,21 @@ func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset 
 	return
 }
 
-func (ex *SourcemanagerExecutor) Describe(ctx context.Context, id string) (info SourcemanagerInfo, err error) {
+func (ex *SourcemanagerExecutor) Describe(ctx context.Context, id string, checkState bool) (info SourcemanagerInfo, err error) {
 	db := ex.db.WithContext(ctx)
 
 	err = db.Table(SourcemanagerTableName).Where("id = ? ", id).Scan(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("describe source", err).Fire()
 		err = qerror.Internal
+		return
 	}
+
+	if info.State == constants.SourceDisableState && checkState == true {
+		err = qerror.SourceIsDisable
+		return
+	}
+
 	return
 }
 
@@ -354,13 +382,18 @@ func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url constants.JSONString, 
 
 // Source Tables
 func (ex *SourcemanagerExecutor) SotCreate(ctx context.Context, info SourceTablesInfo) (err error) {
+	var sourceInfo SourcemanagerInfo
+
 	if len(strings.Split(info.Name, ".")) != 1 {
 		ex.logger.Error().Error("invalid name", fmt.Errorf("can't use '.' in name")).Fire()
 		err = qerror.InvalidSourceName
 		return
 	}
 
-	sourceInfo, _ := ex.Describe(ctx, info.SourceID)
+	sourceInfo, err = ex.Describe(ctx, info.SourceID, true)
+	if err != nil {
+		return
+	}
 
 	if err = ex.checkSourcetablesUrl(info.Url, sourceInfo.EngineType, sourceInfo.SourceType); err != nil {
 		return
@@ -388,6 +421,8 @@ func (ex *SourcemanagerExecutor) SotCreate(ctx context.Context, info SourceTable
 }
 
 func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTablesInfo) (err error) {
+	var sourceInfo SourcemanagerInfo
+
 	if len(strings.Split(info.Name, ".")) != 1 {
 		ex.logger.Error().Error("invalid name", fmt.Errorf("can't use '.' in name")).Fire()
 		err = qerror.InvalidSourceName
@@ -395,7 +430,10 @@ func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTable
 	}
 
 	selfInfo, _ := ex.SotDescribe(ctx, info.ID)
-	sourceInfo, _ := ex.Describe(ctx, selfInfo.SourceID)
+	sourceInfo, err = ex.Describe(ctx, selfInfo.SourceID, true)
+	if err != nil {
+		return
+	}
 
 	if err = ex.checkSourcetablesUrl(info.Url, sourceInfo.EngineType, sourceInfo.SourceType); err != nil {
 		return
@@ -419,6 +457,11 @@ func (ex *SourcemanagerExecutor) SotUpdate(ctx context.Context, info SourceTable
 }
 
 func (ex *SourcemanagerExecutor) SotDelete(ctx context.Context, id string) (err error) {
+	selfInfo, _ := ex.SotDescribe(ctx, id)
+	_, err = ex.Describe(ctx, selfInfo.SourceID, true)
+	if err != nil {
+		return
+	}
 	//TODO schedule DeleteAll
 	db := ex.db.WithContext(ctx)
 	err = db.Where("id = ? ", id).Delete(&SourceTablesInfo{}).Error
@@ -429,13 +472,24 @@ func (ex *SourcemanagerExecutor) SotDelete(ctx context.Context, id string) (err 
 	return
 }
 
-func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, limit int32, offset int32) (infos []*SourceTablesInfo, err error) {
+func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, limit int32, offset int32) (total int32, infos []*SourceTablesInfo, err error) {
+	var total64 int64
+
 	db := ex.db.WithContext(ctx)
+
+	err = db.Table(SourceTablesName).Count(&total64).Where("sourceid = ? ", sourceId).Error
+	if err != nil {
+		ex.logger.Error().Error("list count", err).Fire()
+		err = qerror.Internal
+		return
+	}
+	total = int32(total64)
 
 	err = db.Table(SourceTablesName).Where("sourceid = ? ", sourceId).Limit(int(limit)).Offset(int(offset)).Scan(&infos).Error
 	if err != nil {
 		ex.logger.Error().Error("list source table", err).Fire()
 		err = qerror.Internal
+		return
 	}
 	return
 }
@@ -447,6 +501,10 @@ func (ex *SourcemanagerExecutor) SotDescribe(ctx context.Context, id string) (in
 	if err != nil {
 		ex.logger.Error().Error("describe source table", err).Fire()
 		err = qerror.Internal
+	}
+	_, err = ex.Describe(ctx, info.SourceID, true)
+	if err != nil {
+		return
 	}
 	return
 }
@@ -468,12 +526,12 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, SpaceID string) 
 		tables   []*SourceTablesInfo
 	)
 
-	managers, err = ex.Lists(ctx, 100000, 0, SpaceID)
+	_, managers, err = ex.Lists(ctx, 100000, 0, SpaceID)
 	if err != nil {
 		return
 	}
 	for _, managerInfo := range managers {
-		tables, err = ex.SotLists(ctx, managerInfo.ID, 100000, 0)
+		_, tables, err = ex.SotLists(ctx, managerInfo.ID, 100000, 0)
 		if err != nil {
 			return
 		}
@@ -484,11 +542,26 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, SpaceID string) 
 				return
 			}
 		}
-		err = ex.Delete(ctx, managerInfo.ID)
+		err = ex.Delete(ctx, managerInfo.ID, false)
 		if err != nil {
 			return
 		}
 	}
 
+	return
+}
+
+func (ex *SourcemanagerExecutor) ChangeSourceState(ctx context.Context, id string, state string) (err error) {
+	var info SourcemanagerInfo
+
+	info.UpdateTime = time.Now().Format("2006-01-02 15:04:05")
+	info.State = state
+
+	db := ex.db.WithContext(ctx)
+	err = db.Select("state", "updatetime").Where("id = ? ", id).Updates(info).Error
+	if err != nil {
+		ex.logger.Error().Error("update source", err).Fire()
+		err = qerror.Internal
+	}
 	return
 }

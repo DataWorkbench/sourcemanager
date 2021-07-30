@@ -83,17 +83,18 @@ func (s *SourceManagerServer) Update(ctx context.Context, req *smpb.UpdateReques
 }
 
 func (s *SourceManagerServer) Delete(ctx context.Context, req *smpb.DeleteRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.Delete(ctx, req.GetID())
+	err := s.executor.Delete(ctx, req.GetID(), true)
 	return s.emptyReply, err
 }
 
 func (s *SourceManagerServer) List(ctx context.Context, req *smpb.ListsRequest) (*smpb.ListsReply, error) {
-	infos, err := s.executor.Lists(ctx, req.GetLimit(), req.GetOffset(), req.GetSpaceID())
+	total, infos, err := s.executor.Lists(ctx, req.GetLimit(), req.GetOffset(), req.GetSpaceID())
 	if err != nil {
 		return nil, err
 	}
 
 	reply := new(smpb.ListsReply)
+	reply.Total = total
 	reply.Infos = make([]*smpb.InfoReply, len(infos))
 	for i := range infos {
 		t := ToInfoReplay(*infos[i])
@@ -108,7 +109,7 @@ func (s *SourceManagerServer) List(ctx context.Context, req *smpb.ListsRequest) 
 }
 
 func (s *SourceManagerServer) Describe(ctx context.Context, req *smpb.DescribeRequest) (*smpb.InfoReply, error) {
-	info, err := s.executor.Describe(ctx, req.GetID())
+	info, err := s.executor.Describe(ctx, req.GetID(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -145,12 +146,13 @@ func (s *SourceManagerServer) SotDelete(ctx context.Context, req *smpb.SotDelete
 }
 
 func (s *SourceManagerServer) SotList(ctx context.Context, req *smpb.SotListsRequest) (*smpb.SotListsReply, error) {
-	infos, err := s.executor.SotLists(ctx, req.GetSourceID(), req.GetLimit(), req.GetOffset())
+	total, infos, err := s.executor.SotLists(ctx, req.GetSourceID(), req.GetLimit(), req.GetOffset())
 	if err != nil {
 		return nil, err
 	}
 
 	reply := new(smpb.SotListsReply)
+	reply.Total = total
 	reply.Infos = make([]*smpb.SotInfoReply, len(infos))
 	for i := range infos {
 		t := ToSotInfoReplay(*infos[i])
@@ -181,5 +183,15 @@ func (s *SourceManagerServer) EngineMap(ctx context.Context, req *smpb.EngingMap
 
 func (s *SourceManagerServer) DeleteAll(ctx context.Context, req *smpb.DeleteAllRequest) (*smpb.EmptyReply, error) {
 	err := s.executor.DeleteAll(ctx, req.GetSpaceID())
+	return s.emptyReply, err
+}
+
+func (s *SourceManagerServer) Enable(ctx context.Context, req *smpb.StateRequest) (*smpb.EmptyReply, error) {
+	err := s.executor.ChangeSourceState(ctx, req.GetID(), constants.SourceEnableState)
+	return s.emptyReply, err
+}
+
+func (s *SourceManagerServer) Disable(ctx context.Context, req *smpb.StateRequest) (*smpb.EmptyReply, error) {
+	err := s.executor.ChangeSourceState(ctx, req.GetID(), constants.SourceDisableState)
 	return s.emptyReply, err
 }

@@ -19,6 +19,7 @@ const (
 	SourcemanagerTableName = "sourcemanager"
 	SourceTablesName       = "sourcetables"
 	EngineMapTableName     = "enginemapsource"
+	MAXRows                = 100000000
 )
 
 type EngineMapInfo struct {
@@ -228,6 +229,20 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, info SourcemanagerI
 	return
 }
 
+func (ex *SourcemanagerExecutor) CheckState(ctx context.Context, id string) (err error) {
+	if id[0:len(constants.SourceManagerIDPrefix)] == constants.SourceManagerIDPrefix {
+		descInfo, _ := ex.Describe(ctx, id, false)
+		if descInfo.State == constants.SourceDisableState {
+			err = qerror.SourceIsDisable
+			return
+		}
+	} else {
+		err = qerror.SourceIsDisable
+		return
+	}
+	return
+}
+
 func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerInfo) (err error) {
 	if len(strings.Split(info.Name, ".")) != 1 {
 		ex.logger.Error().Error("invalid name", fmt.Errorf("can't use '.' in name")).Fire()
@@ -235,12 +250,11 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerI
 		return
 	}
 
-	descInfo, _ := ex.Describe(ctx, info.ID, false)
-	if descInfo.State == constants.SourceDisableState {
-		err = qerror.SourceIsDisable
+	if err = ex.CheckState(ctx, info.ID); err != nil {
 		return
 	}
 
+	descInfo, _ := ex.Describe(ctx, info.ID, false)
 	if err = ex.checkSourcemanagerUrl(info.Url, descInfo.EngineType, info.SourceType); err != nil {
 		return
 	}
@@ -263,16 +277,16 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, info SourcemanagerI
 }
 
 func (ex *SourcemanagerExecutor) Delete(ctx context.Context, id string, checkState bool) (err error) {
-	total, _, _ := ex.SotLists(ctx, id, 10, 0)
+	total, _, _ := ex.SotLists(ctx, id, MAXRows, 0)
 	if total > 0 {
 		err = qerror.ResourceIsUsing
 		return
 	}
 
-	descInfo, _ := ex.Describe(ctx, id, false)
-	if descInfo.State == constants.SourceDisableState && checkState == true {
-		err = qerror.SourceIsDisable
-		return
+	if checkState == true {
+		if err = ex.CheckState(ctx, id); err != nil {
+			return
+		}
 	}
 
 	db := ex.db.WithContext(ctx)
@@ -289,7 +303,7 @@ func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset 
 
 	db := ex.db.WithContext(ctx)
 
-	err = db.Table(SourcemanagerTableName).Count(&total64).Where("spaceid = ? ", spaceid).Error
+	err = db.Table(SourcemanagerTableName).Where("spaceid = ? ", spaceid).Count(&total64).Error
 	if err != nil {
 		ex.logger.Error().Error("list count", err).Fire()
 		err = qerror.Internal
@@ -307,15 +321,16 @@ func (ex *SourcemanagerExecutor) Lists(ctx context.Context, limit int32, offset 
 func (ex *SourcemanagerExecutor) Describe(ctx context.Context, id string, checkState bool) (info SourcemanagerInfo, err error) {
 	db := ex.db.WithContext(ctx)
 
+	if checkState == true {
+		if err = ex.CheckState(ctx, id); err != nil {
+			return
+		}
+	}
+
 	err = db.Table(SourcemanagerTableName).Where("id = ? ", id).Scan(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("describe source", err).Fire()
 		err = qerror.Internal
-		return
-	}
-
-	if info.State == constants.SourceDisableState && checkState == true {
-		err = qerror.SourceIsDisable
 		return
 	}
 
@@ -462,6 +477,7 @@ func (ex *SourcemanagerExecutor) SotDelete(ctx context.Context, id string) (err 
 	if err != nil {
 		return
 	}
+
 	//TODO schedule DeleteAll
 	db := ex.db.WithContext(ctx)
 	err = db.Where("id = ? ", id).Delete(&SourceTablesInfo{}).Error
@@ -477,7 +493,7 @@ func (ex *SourcemanagerExecutor) SotLists(ctx context.Context, sourceId string, 
 
 	db := ex.db.WithContext(ctx)
 
-	err = db.Table(SourceTablesName).Count(&total64).Where("sourceid = ? ", sourceId).Error
+	err = db.Table(SourceTablesName).Where("sourceid = ? ", sourceId).Count(&total64).Error
 	if err != nil {
 		ex.logger.Error().Error("list count", err).Fire()
 		err = qerror.Internal
@@ -526,12 +542,12 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, SpaceID string) 
 		tables   []*SourceTablesInfo
 	)
 
-	_, managers, err = ex.Lists(ctx, 100000, 0, SpaceID)
+	_, managers, err = ex.Lists(ctx, MAXRows, 0, SpaceID)
 	if err != nil {
 		return
 	}
 	for _, managerInfo := range managers {
-		_, tables, err = ex.SotLists(ctx, managerInfo.ID, 100000, 0)
+		_, tables, err = ex.SotLists(ctx, managerInfo.ID, MAXRows, 0)
 		if err != nil {
 			return
 		}

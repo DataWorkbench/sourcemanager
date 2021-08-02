@@ -142,15 +142,15 @@ func Test_Create(t *testing.T) {
 	_, err = client.Create(ctx, &NewSpaceManager)
 	require.Nil(t, err, "%+v", err)
 	_, err = client.Create(ctx, &NameErrorManager)
-	require.Equal(t, errorCode(err), qerror.InvalidSourceName.Code())
+	require.Equal(t, qerror.InvalidSourceName.Code(), errorCode(err))
 	_, err = client.Create(ctx, &NameExistsManager)
-	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
+	require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
 	_, err = client.Create(ctx, &JsonErrorManager)
-	require.Equal(t, errorCode(err), qerror.InvalidJSON.Code())
+	require.Equal(t, qerror.InvalidJSON.Code(), errorCode(err))
 	_, err = client.Create(ctx, &SourceTypeErrorManager)
-	require.Equal(t, errorCode(err), qerror.NotSupportSourceType.Code())
+	require.Equal(t, qerror.NotSupportSourceType.Code(), errorCode(err))
 	_, err = client.Create(ctx, &EngineTypeErrorManager)
-	require.Equal(t, errorCode(err), qerror.NotSupportEngineType.Code())
+	require.Equal(t, qerror.NotSupportEngineType.Code(), errorCode(err))
 	_, err = client.Create(ctx, &S3Manager)
 	require.Nil(t, err, "%+v", err)
 	_, err = client.Create(ctx, &ClickHouseManager)
@@ -175,7 +175,7 @@ func Test_PingSource(t *testing.T) {
 	p.Url = PGManager.Url
 	p.EngineType = PGManager.EngineType
 	_, err = client.PingSource(ctx, &p)
-	require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
+	require.Equal(t, qerror.ConnectSourceFailed.Code(), errorCode(err))
 
 	p.SourceType = KafkaManager.SourceType
 	p.Url = KafkaManager.Url
@@ -188,13 +188,13 @@ func Test_PingSource(t *testing.T) {
 	p.EngineType = S3Manager.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Nil(t, err, "%+v", err)
-	//require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
+	//require.Equal(t, qerror.ConnectSourceFailed.Code(), errorCode(err))
 
 	p.SourceType = ClickHouseManager.SourceType
 	p.Url = ClickHouseManager.Url
 	p.EngineType = ClickHouseManager.EngineType
 	_, err = client.PingSource(ctx, &p)
-	require.Equal(t, errorCode(err), qerror.ConnectSourceFailed.Code())
+	require.Equal(t, qerror.ConnectSourceFailed.Code(), errorCode(err))
 	//require.Nil(t, err, "%+v", err)
 
 	p.SourceType = HbaseManager.SourceType
@@ -224,37 +224,37 @@ func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
 		d.ID = MysqlManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		d.ID = PGManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		d.ID = KafkaManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		d.ID = NewSpaceManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		d.ID = S3Manager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		d.ID = ClickHouseManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		d.ID = HbaseManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		return nil
 	} else {
 		d.ID = id
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, d.ID, rep.ID)
+		require.Equal(t, rep.ID, d.ID)
 		return rep
 	}
 
@@ -301,13 +301,15 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 6)
+		require.Equal(t, 6, len(rep.Infos))
+		require.Equal(t, int32(6), rep.Total)
 		i.SpaceID = NewSpaceManager.SpaceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 1)
+		require.Equal(t, 1, len(rep.Infos))
+		require.Equal(t, int32(1), rep.Total)
 		return nil
 	} else {
 		i.SpaceID = SpaceID
@@ -356,7 +358,7 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 			i.ID = MysqlManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.NotNil(t, err, "%+v", err)
-			require.Equal(t, errorCode(err), qerror.ResourceIsUsing.Code())
+			require.Equal(t, qerror.ResourceIsUsing.Code(), errorCode(err))
 		}
 	} else {
 		i.ID = id
@@ -384,7 +386,7 @@ func Test_Update(t *testing.T) {
 	i.Url = MysqlManager.Url
 	_, err = client.Update(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
+	require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
 }
 
 // Source Tables
@@ -400,13 +402,13 @@ func Test_SotCreate(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 	_, err = client.SotCreate(ctx, &TableNameExists)
 	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
+	require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
 	_, err = client.SotCreate(ctx, &TableNameError)
 	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.InvalidSourceName.Code())
+	require.Equal(t, qerror.InvalidSourceName.Code(), errorCode(err))
 	_, err = client.SotCreate(ctx, &TableJsonError)
 	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.InvalidJSON.Code())
+	require.Equal(t, qerror.InvalidJSON.Code(), errorCode(err))
 	_, err = client.SotCreate(ctx, &TableManagerError)
 	require.NotNil(t, err, "%+v", err)
 	_, err = client.SotCreate(ctx, &TableMysqlDimensionSource)
@@ -444,42 +446,48 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 1)
+		require.Equal(t, 1, len(rep.Infos))
+		require.Equal(t, int32(1), rep.Total)
 
 		i.SourceID = TableMysqlSource.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 8)
+		require.Equal(t, 8, len(rep.Infos))
+		require.Equal(t, int32(8), rep.Total)
 
 		i.SourceID = TableKafka.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 1)
+		require.Equal(t, 1, len(rep.Infos))
+		require.Equal(t, int32(1), rep.Total)
 
 		i.SourceID = TableS3Source.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 2)
+		require.Equal(t, 2, len(rep.Infos))
+		require.Equal(t, int32(2), rep.Total)
 
 		i.SourceID = TableClickHouseDest.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 1)
+		require.Equal(t, 1, len(rep.Infos))
+		require.Equal(t, int32(1), rep.Total)
 
 		i.SourceID = TableHbaseSource.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, len(rep.Infos), 2)
+		require.Equal(t, 2, len(rep.Infos))
+		require.Equal(t, int32(2), rep.Total)
 	} else {
 		i.SourceID = SourceID
 		i.Limit = 100
@@ -621,21 +629,21 @@ func Test_SotUpdate(t *testing.T) {
 	i.Url = TableMysqlSource.Url
 	_, err = client.SotUpdate(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.InvalidSourceName.Code())
+	require.Equal(t, qerror.InvalidSourceName.Code(), errorCode(err))
 
 	i.ID = TableKafka.ID
 	i.Name = TableKafka.Name
 	i.Url = "err, json, url"
 	_, err = client.SotUpdate(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.InvalidJSON.Code())
+	require.Equal(t, qerror.InvalidJSON.Code(), errorCode(err))
 
 	i.ID = TableMysqlSource.ID
 	i.Name = TableMysqlDest.Name
 	i.Url = TableMysqlSource.Url
 	_, err = client.SotUpdate(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
-	require.Equal(t, errorCode(err), qerror.ResourceAlreadyExists.Code())
+	require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
 }
 
 func Test_PrepareDelete(t *testing.T) {
@@ -651,6 +659,59 @@ func Test_Delete(t *testing.T) {
 }
 
 func Test_CreateObjects(t *testing.T) {
+	Test_Create(t)
+	Test_Update(t)
+
+	Test_SotCreate(t)
+	Test_SotUpdate(t)
+}
+
+func Test_Disable(t *testing.T) {
+	mainInit(t)
+	var v smpb.StateRequest
+	var err error
+
+	v.ID = MysqlManager.ID
+
+	_, err = client.Disable(ctx, &v)
+	require.Nil(t, err, "%+v", err)
+
+	var i smpb.UpdateRequest
+
+	i.Name = MysqlManager.Name
+	i.ID = MysqlManager.ID
+	i.Comment = "updateok"
+	i.SourceType = MysqlManager.SourceType
+	i.Url = MysqlManager.Url
+	_, err = client.Update(ctx, &i)
+	require.NotNil(t, err, "%+v", err)
+	require.Equal(t, qerror.SourceIsDisable.Code(), errorCode(err))
+
+	var i1 smpb.SotDescribeRequest
+
+	i1.ID = TableMysqlSource.ID
+	_, err = client.SotDescribe(ctx, &i1)
+	require.NotNil(t, err, "%+v", err)
+	require.Equal(t, qerror.SourceIsDisable.Code(), errorCode(err))
+}
+
+func Test_Enable(t *testing.T) {
+	mainInit(t)
+	var v smpb.StateRequest
+	var err error
+
+	v.ID = MysqlManager.ID
+
+	_, err = client.Enable(ctx, &v)
+	require.Nil(t, err, "%+v", err)
+}
+
+func Test_Clean(t *testing.T) {
+	mainInit(t)
+	Clean(t)
+}
+
+func Test_CreateObjectsRepeat(t *testing.T) {
 	Test_Create(t)
 	Test_Update(t)
 

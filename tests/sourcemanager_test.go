@@ -30,6 +30,7 @@ var SourceTypeErrorManager smpb.CreateRequest //create failed
 var S3Manager smpb.CreateRequest
 var ClickHouseManager smpb.CreateRequest
 var HbaseManager smpb.CreateRequest
+var FtpManager smpb.CreateRequest
 
 var TablePG smpb.SotCreateRequest
 var TableKafka smpb.SotCreateRequest
@@ -50,6 +51,8 @@ var TableUDFSource smpb.SotCreateRequest
 var TableUDFDest smpb.SotCreateRequest
 var TableHbaseSource smpb.SotCreateRequest
 var TableHbaseDest smpb.SotCreateRequest
+var TableFtpSource smpb.SotCreateRequest
+var TableFtpDest smpb.SotCreateRequest
 
 func typeToJsonString(v interface{}) string {
 	s, _ := json.Marshal(&v)
@@ -79,6 +82,7 @@ func mainInit(t *testing.T) {
 	S3Manager = smpb.CreateRequest{ID: "som-0123456789012354", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeS3, Name: "s3", Comment: "qingcloud s3", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceS3Params{AccessKey: "RDTHDPNFWWDNWPIHESWK", SecretKey: "sVbVhAUsKGPPdiTOPAgveqCNhFjtvXFNpsPnQ7Hx", EndPoint: "http://s3.gd2.qingstor.com"})} // s3 not is url bucket
 	ClickHouseManager = smpb.CreateRequest{ID: "som-0123456789012355", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeClickHouse, Name: "clickhouse", Comment: "clickhouse", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceClickHouseParams{User: "default", Password: "", Host: "127.0.0.1", Port: 8123, Database: "default"})}
 	HbaseManager = smpb.CreateRequest{ID: "som-0123456789012356", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeHbase, Name: "hbase", Comment: "hbase", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceHbaseParams{Zookeeper: "hbase:2181", Znode: "/hbase"})}
+	FtpManager = smpb.CreateRequest{ID: "som-0123456789012357", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeFtp, Name: "ftp", Comment: "ftp", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceFtpParams{Host: "42.193.101.183", Port: 21})}
 
 	// Source Tables
 	TablePG = smpb.SotCreateRequest{ID: "sot-0123456789012345", SourceID: PGManager.ID, Name: "pd", Comment: "postgresql", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "id", Type: "bigint", PrimaryKey: "t"}, constants.SqlColumnType{Name: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}})}
@@ -100,6 +104,8 @@ func mainInit(t *testing.T) {
 	TableUDFDest = smpb.SotCreateRequest{ID: "sot-0123456789012363", SourceID: MysqlManager.ID, Name: "udfd", Comment: "udfd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "a", Type: "varchar", PrimaryKey: "f", Length: "10"}}})}
 	TableHbaseSource = smpb.SotCreateRequest{ID: "sot-0123456789012364", SourceID: HbaseManager.ID, Name: "testsource", Comment: "hbase source", Url: typeToJsonString(constants.FlinkTableDefineHbase{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "rowkey", Type: "STRING", PrimaryKey: "f", Length: ""}, constants.SqlColumnType{Name: "columna", Type: "ROW<a STRING>"}}})}
 	TableHbaseDest = smpb.SotCreateRequest{ID: "sot-0123456789012365", SourceID: HbaseManager.ID, Name: "testdest", Comment: "hbase dest", Url: typeToJsonString(constants.FlinkTableDefineHbase{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "rowkey", Type: "STRING", PrimaryKey: "f", Length: ""}, constants.SqlColumnType{Name: "columna", Type: "ROW<a STRING>"}}})}
+	TableFtpSource = smpb.SotCreateRequest{ID: "sot-0123456789012366", SourceID: FtpManager.ID, Name: "ftpsource", Comment: "ftp source", Url: typeToJsonString(constants.FlinkTableDefineFtp{Path: "/u/", Format: "csv", SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "readName", Type: "string", Comment: "xxx"}, constants.SqlColumnType{Name: "cellPhone", Type: "string", Comment: "xxx"}, {Name: "universityName", Type: "string", Comment: "xxx"}, {Name: "city", Type: "string", Comment: "xxx"}, {Name: "street", Type: "string", Comment: "xxx"}, {Name: "ip", Type: "string", Comment: "xxx"}, {Name: "pt", Type: "AS PROCTIME()"}},ConnectorOptions: []string{"'username' = 'ftptest'","'password' = '123456'"}})}
+	TableFtpDest = smpb.SotCreateRequest{ID: "sot-0123456789012367", SourceID: FtpManager.ID, Name: "ftpdest", Comment: "ftp dest", Url: typeToJsonString(constants.FlinkTableDefineFtp{Path: "/sink.csv", Format: "csv", SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "readName", Type: "string", Comment: "xxx"}, constants.SqlColumnType{Name: "cellPhone", Type: "string", Comment: "xxx"}, {Name: "universityName", Type: "string", Comment: "xxx"}, {Name: "city", Type: "string", Comment: "xxx"}, {Name: "street", Type: "string", Comment: "xxx"}, {Name: "ip", Type: "string", Comment: "xxx"}},ConnectorOptions: []string{"'username' = 'ftptest'","'password' = '123456'"}})}
 
 	address := "127.0.0.1:9104"
 	//address := "127.0.0.1:50001"
@@ -157,6 +163,8 @@ func Test_Create(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 	_, err = client.Create(ctx, &HbaseManager)
 	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &FtpManager)
+	require.Nil(t, err, "%+v", err)
 }
 
 func Test_PingSource(t *testing.T) {
@@ -200,6 +208,12 @@ func Test_PingSource(t *testing.T) {
 	p.SourceType = HbaseManager.SourceType
 	p.Url = HbaseManager.Url
 	p.EngineType = HbaseManager.EngineType
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
+
+	p.SourceType = FtpManager.SourceType
+	p.Url = FtpManager.Url
+	p.EngineType = FtpManager.EngineType
 	_, err = client.PingSource(ctx, &p)
 	require.Nil(t, err, "%+v", err)
 }
@@ -246,6 +260,10 @@ func managerDescribe(t *testing.T, id string) *smpb.InfoReply {
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, rep.ID, d.ID)
 		d.ID = HbaseManager.ID
+		rep, err = client.Describe(ctx, &d)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, rep.ID, d.ID)
+		d.ID = FtpManager.ID
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, rep.ID, d.ID)
@@ -301,8 +319,8 @@ func managerLists(t *testing.T, SpaceID string) *smpb.ListsReply {
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		require.Equal(t, 6, len(rep.Infos))
-		require.Equal(t, int32(6), rep.Total)
+		require.Equal(t, 7, len(rep.Infos))
+		require.Equal(t, int32(7), rep.Total)
 		i.SpaceID = NewSpaceManager.SpaceID
 		i.Limit = 100
 		i.Offset = 0
@@ -354,12 +372,16 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 			i.ID = NewSpaceManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
+			i.ID = FtpManager.ID
+			_, err = client.Delete(ctx, &i)
+			require.Nil(t, err, "%+v", err)
 		} else {
 			i.ID = MysqlManager.ID
 			_, err = client.Delete(ctx, &i)
 			require.NotNil(t, err, "%+v", err)
 			require.Equal(t, qerror.ResourceIsUsing.Code(), errorCode(err))
 		}
+
 	} else {
 		i.ID = id
 		_, err = client.Delete(ctx, &i)
@@ -433,6 +455,10 @@ func Test_SotCreate(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 	_, err = client.SotCreate(ctx, &TableHbaseDest)
 	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &TableFtpSource)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.SotCreate(ctx, &TableFtpDest)
+	require.Nil(t, err, "%+v", err)
 }
 
 func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
@@ -482,6 +508,14 @@ func tablesLists(t *testing.T, SourceID string) *smpb.SotListsReply {
 		require.Equal(t, int32(1), rep.Total)
 
 		i.SourceID = TableHbaseSource.SourceID
+		i.Limit = 100
+		i.Offset = 0
+		rep, err = client.SotList(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, 2, len(rep.Infos))
+		require.Equal(t, int32(2), rep.Total)
+
+		i.SourceID = TableFtpSource.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.SotList(ctx, &i)
@@ -553,6 +587,12 @@ func tablesDelete(t *testing.T, id string) {
 		i.ID = TableHbaseDest.ID
 		_, err = client.SotDelete(ctx, &i)
 		require.Nil(t, err, "%+v", err)
+		i.ID = TableFtpSource.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		i.ID = TableFtpDest.ID
+		_, err = client.SotDelete(ctx, &i)
+		require.Nil(t, err, "%+v", err)
 	} else {
 		i.ID = id
 		_, err = client.SotDelete(ctx, &i)
@@ -599,6 +639,12 @@ func tablesDescribe(t *testing.T, id string) *smpb.SotInfoReply {
 		i.ID = TableHbaseDest.ID
 		rep, err = client.SotDescribe(ctx, &i)
 		require.Nil(t, err, "%+v", err)
+		i.ID = TableFtpSource.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err,"%+v",err)
+		i.ID = TableFtpDest.ID
+		rep, err = client.SotDescribe(ctx, &i)
+		require.Nil(t, err,"%+v",err)
 	} else {
 		i.ID = id
 		rep, err = client.SotDescribe(ctx, &i)

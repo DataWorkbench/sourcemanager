@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/DataWorkbench/common/gtrace"
 	"io"
 	"os"
 	"os/signal"
@@ -44,7 +45,7 @@ func Start() (err error) {
 		db           *gorm.DB
 		rpcServer    *grpcwrap.Server
 		metricServer *metrics.Server
-		//tracer       trace.Tracer
+		tracer       gtrace.Tracer
 		tracerCloser io.Closer
 	)
 
@@ -57,20 +58,19 @@ func Start() (err error) {
 		_ = lp.Close()
 	}()
 
-	//tracer, tracerCloser, err = trace.New(cfg.Tracer)
+	tracer, tracerCloser, err = gtrace.New(cfg.Tracer)
 	if err != nil {
 		return
 	}
+	ctx = gtrace.ContextWithTracer(ctx, tracer)
 
 	// init gorm.DB
-	//db, err = gormwrap.NewMySQLConn(ctx, cfg.MySQL, gormwrap.WithTracer(tracer))
 	db, err = gormwrap.NewMySQLConn(ctx, cfg.MySQL)
 	if err != nil {
 		return
 	}
 
 	// init grpc.Server
-	//rpcServer, err = grpcwrap.NewServer(ctx, cfg.GRPCServer, grpcwrap.ServerWithTracer(tracer))
 	rpcServer, err = grpcwrap.NewServer(ctx, cfg.GRPCServer)
 	if err != nil {
 		return

@@ -24,6 +24,10 @@ Kafka="Kafka"
 Kafka_image=`base64 -w 10000000 Kafka.png`
 Kafka_desc="Kafka是一个分布式消息队列。"
 
-sourcetype="{\"SourceList\": [{\"name\":\"$MySQL\", \"image\": \"$MySQL_image\", \"desc\": \"$MySQL_desc\"}, {\"name\": \"$PostgreSQL\", \"image\": \"$PostgreSQL_image\", \"desc\": \"$PostgreSQL_desc\"}, {\"name\":\"$S3\", \"image\": \"$S3_image\", \"desc\": \"$S3_desc\"}, {\"name\":\"$ClickHouse\", \"image\": \"$ClickHouse_image\", \"desc\": \"$ClickHouse_desc\"} ,{\"name\":\"$Hbase\",\"image\": \"$Hbase_image\", \"desc\": \"$Hbase_desc\"} ,{\"name\":\"$Kafka\", \"image\": \"$Kafka_image\", \"desc\": \"$Kafka_desc\"}]}"
+Ftp="Ftp"
+Ftp_image=`base64 -w 10000000 Ftp.png`
+Ftp_desc="FTP是一种数据传输协议，将电脑上的数据与服务器数据进行交换"
+
+sourcetype="{\"SourceList\": [{\"name\":\"$MySQL\", \"image\": \"$MySQL_image\", \"desc\": \"$MySQL_desc\"}, {\"name\": \"$PostgreSQL\", \"image\": \"$PostgreSQL_image\", \"desc\": \"$PostgreSQL_desc\"}, {\"name\":\"$S3\", \"image\": \"$S3_image\", \"desc\": \"$S3_desc\"}, {\"name\":\"$ClickHouse\", \"image\": \"$ClickHouse_image\", \"desc\": \"$ClickHouse_desc\"} ,{\"name\":\"$Hbase\",\"image\": \"$Hbase_image\", \"desc\": \"$Hbase_desc\"} ,{\"name\":\"$Kafka\", \"image\": \"$Kafka_image\", \"desc\": \"$Kafka_desc\"} ,{\"name\":\"$Ftp\", \"image\": \"$Ftp_image\", \"desc\": \"$Ftp_desc\"}]}"
 
 echo "insert into enginemapsource values('flink', '$sourcetype');"

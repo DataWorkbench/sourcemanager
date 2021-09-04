@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/dutchcoders/goftp"
 	"github.com/samuel/go-zookeeper/zk"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -171,6 +172,24 @@ func PingHbase(url string) (err error) {
 	return
 }
 
+func PingFtp(url string) (err error) {
+	var (
+		s    constants.SourceFtpParams
+		conn *goftp.FTP
+	)
+
+	if err = json.Unmarshal([]byte(url), &s); err != nil {
+		return
+	}
+	host := s.Host
+	port := s.Port
+	if conn, err = goftp.Connect(fmt.Sprintf("%v:%d", host, port)); err != nil {
+		return
+	}
+	defer conn.Close()
+	return
+}
+
 func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype string, url string, enginetype string) (err error) {
 	if err = ex.checkSourcemanagerUrl(constants.JSONString(url), enginetype, sourcetype); err != nil {
 		return
@@ -188,6 +207,8 @@ func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype stri
 		err = PingClickHouse(url)
 	} else if sourcetype == constants.SourceTypeHbase {
 		err = PingHbase(url)
+	} else if sourcetype == constants.SourceTypeFtp {
+		err = PingFtp(url)
 	} else {
 		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
 		err = qerror.ConnectSourceFailed

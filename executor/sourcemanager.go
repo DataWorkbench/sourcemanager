@@ -79,7 +79,8 @@ func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecuto
 
 func (ex *SourcemanagerExecutor) GetSourceDirection(enginetype string, sourcetype string) (direction string, err error) {
 	if enginetype == constants.EngineTypeFlink {
-		if sourcetype == constants.SourceTypeMysql || sourcetype == constants.SourceTypePostgreSQL || sourcetype == constants.SourceTypeKafka || sourcetype == constants.SourceTypeS3 || sourcetype == constants.SourceTypeHbase {
+		if sourcetype == constants.SourceTypeMysql || sourcetype == constants.SourceTypePostgreSQL || sourcetype == constants.SourceTypeKafka || sourcetype == constants.SourceTypeS3 || sourcetype == constants.SourceTypeHbase ||
+			sourcetype == constants.SourceTypeFtp {
 			direction = constants.DirectionSource + constants.DirectionDestination
 		} else if sourcetype == constants.SourceTypeClickHouse {
 			direction = constants.DirectionDestination
@@ -137,6 +138,13 @@ func (ex *SourcemanagerExecutor) checkSourcemanagerUrl(url constants.JSONString,
 			var v constants.SourceHbaseParams
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
 				ex.logger.Error().Error("check source hbase url", err).Fire()
+				err = qerror.InvalidJSON
+				return
+			}
+		} else if sourcetype == constants.SourceTypeFtp {
+			var v constants.SourceFtpParams
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source ftp url", err).Fire()
 				err = qerror.InvalidJSON
 				return
 			}
@@ -378,6 +386,13 @@ func (ex *SourcemanagerExecutor) checkSourcetablesUrl(url constants.JSONString, 
 			var v constants.FlinkTableDefineHbase
 			if err = json.Unmarshal([]byte(url), &v); err != nil {
 				ex.logger.Error().Error("check source hbase define url", err).Fire()
+				err = qerror.InvalidJSON
+				return err
+			}
+		} else if sourcetype == constants.SourceTypeFtp {
+			var v constants.FlinkTableDefineFtp
+			if err = json.Unmarshal([]byte(url), &v); err != nil {
+				ex.logger.Error().Error("check source ftp define url", err).Fire()
 				err = qerror.InvalidJSON
 				return err
 			}

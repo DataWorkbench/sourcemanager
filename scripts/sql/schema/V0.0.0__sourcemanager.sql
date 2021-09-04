@@ -26,7 +26,7 @@ create table sourcemanager(
 ) ENGINE=InnoDB;
 alter table sourcemanager add constraint sourcemanager_pkey primary key(id);
 create unique index sourcemanager_unique ON  sourcemanager (spaceid, name);
-alter table sourcemanager add CONSTRAINT sourcemanager_chk_type check(sourcetype = 'MySQL' or sourcetype = 'PostgreSQL' or sourcetype = 'Kafka' or sourcetype = 'S3' or sourcetype = 'ClickHouse' or sourcetype = 'Hbase');
+alter table sourcemanager add CONSTRAINT sourcemanager_chk_type check(sourcetype = 'MySQL' or sourcetype = 'PostgreSQL' or sourcetype = 'Kafka' or sourcetype = 'S3' or sourcetype = 'ClickHouse' or sourcetype = 'Hbase' or sourcetype = 'Ftp');
 alter table sourcemanager add constraint sourcemanager_chk_crt check (creator = 'workbench' or creator = 'custom');
 alter table sourcemanager add constraint sourcemanager_chk_state check (state = 'enable' or state = 'disable');
 

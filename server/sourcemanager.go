@@ -3,195 +3,165 @@ package server
 import (
 	"context"
 
+	"github.com/DataWorkbench/common/constants"
+	"github.com/DataWorkbench/gproto/pkg/model"
+	"github.com/DataWorkbench/gproto/pkg/request"
+	"github.com/DataWorkbench/gproto/pkg/response"
 	"github.com/DataWorkbench/gproto/pkg/smpb"
 
-	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/sourcemanager/executor"
 )
 
-// SourceManagerServer implements grpc server Interface wkspb.SourceManagerServer
 type SourceManagerServer struct {
 	smpb.UnimplementedSourcemanagerServer
-	executor   *executor.SourcemanagerExecutor
-	emptyReply *smpb.EmptyReply
+	executor *executor.SourcemanagerExecutor
 }
 
-func ToInfoReplay(s executor.SourcemanagerInfo) (p smpb.InfoReply) {
-	p.Comment = s.Comment
-	p.CreateTime = s.CreateTime
-	p.Creator = s.Creator
-	p.ID = s.ID
-	p.Name = s.Name
-	p.SourceType = s.SourceType
-	p.SpaceID = s.SpaceID
-	p.Url = string(s.Url)
-	p.UpdateTime = s.UpdateTime
-	p.EngineType = s.EngineType
-	p.Direction = s.Direction
-	return
-}
-
-func ToSotInfoReplay(s executor.SourceTablesInfo) (p smpb.SotInfoReply) {
-	p.ID = s.ID
-	p.SourceID = s.SourceID
-	p.Name = s.Name
-	p.Comment = s.Comment
-	p.Url = string(s.Url)
-	p.CreateTime = s.CreateTime
-	p.UpdateTime = s.UpdateTime
-	return
-}
-
-func CrToSmInfo(p *smpb.CreateRequest) (s executor.SourcemanagerInfo) {
-	s.Comment = p.GetComment()
-	s.Creator = p.GetCreator()
-	s.Name = p.GetName()
-	s.SourceType = p.GetSourceType()
-	s.SpaceID = p.GetSpaceID()
-	s.Url = constants.JSONString(p.GetUrl())
-	s.ID = p.GetID()
-	s.EngineType = p.GetEngineType()
-	return
-}
-
-func CrToSotInfo(p *smpb.SotCreateRequest) (s executor.SourceTablesInfo) {
-	s.ID = p.GetID()
-	s.SourceID = p.GetSourceID()
-	s.Name = p.GetName()
-	s.Comment = p.GetComment()
-	s.Url = constants.JSONString(p.GetUrl())
-	return
-}
-
-// NewSourceManagerServer
 func NewSourceManagerServer(executor *executor.SourcemanagerExecutor) *SourceManagerServer {
 	return &SourceManagerServer{
-		executor:   executor,
-		emptyReply: &smpb.EmptyReply{},
+		executor: executor,
 	}
 }
 
-// SourceManager
-func (s *SourceManagerServer) Create(ctx context.Context, req *smpb.CreateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.Create(ctx, CrToSmInfo(req))
-	return s.emptyReply, err
+func (s *SourceManagerServer) Create(ctx context.Context, req *request.CreateSource) (*model.EmptyStruct, error) {
+	err := s.executor.Create(ctx, req)
+	return &model.EmptyStruct{}, err
 }
 
-func (s *SourceManagerServer) Update(ctx context.Context, req *smpb.UpdateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.Update(ctx, executor.SourcemanagerInfo{ID: req.GetID(), SourceType: req.GetSourceType(), Name: req.GetName(), Comment: req.GetComment(), Url: constants.JSONString(req.GetUrl())})
-	return s.emptyReply, err
-}
+func (s *SourceManagerServer) Describe(ctx context.Context, req *request.DescribeSource) (*response.DescribeSource, error) {
+	var ret response.DescribeSource
 
-func (s *SourceManagerServer) Delete(ctx context.Context, req *smpb.DeleteRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.Delete(ctx, req.GetID(), true)
-	return s.emptyReply, err
-}
-
-func (s *SourceManagerServer) List(ctx context.Context, req *smpb.ListsRequest) (*smpb.ListsReply, error) {
-	total, infos, err := s.executor.Lists(ctx, req.GetLimit(), req.GetOffset(), req.GetSpaceID())
+	info, err := s.executor.Describe(ctx, req.GetSourceID(), true)
 	if err != nil {
 		return nil, err
 	}
 
-	reply := new(smpb.ListsReply)
-	reply.Total = total
-	reply.Infos = make([]*smpb.InfoReply, len(infos))
-	for i := range infos {
-		t := ToInfoReplay(*infos[i])
-		if tmperr := s.executor.PingSource(ctx, t.SourceType, t.Url, t.EngineType); tmperr != nil {
-			t.Connected = constants.SourceConnectedFailed
-		} else {
-			t.Connected = constants.SourceConnectedSuccess
-		}
-		reply.Infos[i] = &t
-	}
-	return reply, nil
-}
-
-func (s *SourceManagerServer) Describe(ctx context.Context, req *smpb.DescribeRequest) (*smpb.InfoReply, error) {
-	info, err := s.executor.Describe(ctx, req.GetID(), true)
-	if err != nil {
-		return nil, err
-	}
-	reply := ToInfoReplay(info)
-
-	if tmperr := s.executor.PingSource(ctx, reply.SourceType, reply.Url, reply.EngineType); tmperr != nil {
-		reply.Connected = constants.SourceConnectedFailed
+	if err = s.executor.PingSource(ctx, info.SourceType, info.Url); err != nil {
+		ret.Connected = constants.SourceConnectedFailed
 	} else {
-		reply.Connected = constants.SourceConnectedSuccess
+		ret.Connected = constants.SourceConnectedSuccess
 	}
+	ret.Info = &info
 
-	return &reply, nil
+	return &ret, nil
 }
 
-func (s *SourceManagerServer) PingSource(ctx context.Context, req *smpb.PingSourceRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.PingSource(ctx, req.GetSourceType(), req.GetUrl(), req.GetEngineType())
-	return s.emptyReply, err
+func (s *SourceManagerServer) Update(ctx context.Context, req *request.UpdateSource) (*model.EmptyStruct, error) {
+	err := s.executor.Update(ctx, req)
+	return &model.EmptyStruct{}, err
 }
 
-// Source Tables
-func (s *SourceManagerServer) SotCreate(ctx context.Context, req *smpb.SotCreateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.SotCreate(ctx, CrToSotInfo(req))
-	return s.emptyReply, err
+func (s *SourceManagerServer) PingSource(ctx context.Context, req *request.PingSource) (*model.EmptyStruct, error) {
+	err := s.executor.PingSource(ctx, req.GetSourceType(), req.GetUrl())
+	return &model.EmptyStruct{}, err
 }
 
-func (s *SourceManagerServer) SotUpdate(ctx context.Context, req *smpb.SotUpdateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.SotUpdate(ctx, executor.SourceTablesInfo{ID: req.GetID(), Name: req.GetName(), Comment: req.GetComment(), Url: constants.JSONString(req.GetUrl())})
-	return s.emptyReply, err
+func (s *SourceManagerServer) Enable(ctx context.Context, req *request.EnableSource) (*model.EmptyStruct, error) {
+	err := s.executor.ChangeSourceState(ctx, req.GetSourceIDs(), constants.SourceEnableState)
+	return &model.EmptyStruct{}, err
 }
 
-func (s *SourceManagerServer) SotDelete(ctx context.Context, req *smpb.SotDeleteRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.SotDelete(ctx, req.GetID())
-	return s.emptyReply, err
+func (s *SourceManagerServer) Disable(ctx context.Context, req *request.DisableSource) (*model.EmptyStruct, error) {
+	err := s.executor.ChangeSourceState(ctx, req.GetSourceIDs(), constants.SourceDisableState)
+	return &model.EmptyStruct{}, err
 }
 
-func (s *SourceManagerServer) SotList(ctx context.Context, req *smpb.SotListsRequest) (*smpb.SotListsReply, error) {
-	total, infos, err := s.executor.SotLists(ctx, req.GetSourceID(), req.GetLimit(), req.GetOffset())
+func (s *SourceManagerServer) SourceKind(ctx context.Context, req *model.EmptyStruct) (*response.SourceKind, error) {
+	info, err := s.executor.SourceKind(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	reply := new(smpb.SotListsReply)
-	reply.Total = total
-	reply.Infos = make([]*smpb.SotInfoReply, len(infos))
-	for i := range infos {
-		t := ToSotInfoReplay(*infos[i])
-		reply.Infos[i] = &t
-	}
-	return reply, nil
+	return &info, nil
 }
 
-func (s *SourceManagerServer) SotDescribe(ctx context.Context, req *smpb.SotDescribeRequest) (*smpb.SotInfoReply, error) {
-	info, err := s.executor.SotDescribe(ctx, req.GetID())
-	if err != nil {
-		return nil, err
-	}
-	reply := ToSotInfoReplay(info)
-
-	return &reply, nil
-}
-
-func (s *SourceManagerServer) EngineMap(ctx context.Context, req *smpb.EngingMapRequest) (*smpb.EngineMapReply, error) {
-	info, err := s.executor.EngineMap(ctx, req.GetEngineType())
+func (s *SourceManagerServer) DataFormat(ctx context.Context, req *model.EmptyStruct) (*response.JsonList, error) {
+	info, err := s.executor.DataFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	reply := smpb.EngineMapReply{EngineType: info.EngineType, SourceType: info.SourceType}
-	return &reply, nil
+	return &info, nil
 }
 
-func (s *SourceManagerServer) DeleteAll(ctx context.Context, req *smpb.DeleteAllRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.DeleteAll(ctx, req.GetSpaceID())
-	return s.emptyReply, err
+func (s *SourceManagerServer) DataType(ctx context.Context, req *model.EmptyStruct) (*response.JsonList, error) {
+	info, err := s.executor.DataType(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &info, nil
 }
 
-func (s *SourceManagerServer) Enable(ctx context.Context, req *smpb.StateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.ChangeSourceState(ctx, req.GetID(), constants.SourceEnableState)
-	return s.emptyReply, err
+func (s *SourceManagerServer) CreateTable(ctx context.Context, req *request.CreateTable) (*model.EmptyStruct, error) {
+	err := s.executor.CreateTable(ctx, req)
+	return &model.EmptyStruct{}, err
 }
 
-func (s *SourceManagerServer) Disable(ctx context.Context, req *smpb.StateRequest) (*smpb.EmptyReply, error) {
-	err := s.executor.ChangeSourceState(ctx, req.GetID(), constants.SourceDisableState)
-	return s.emptyReply, err
+func (s *SourceManagerServer) DescribeTable(ctx context.Context, req *request.DescribeTable) (*response.DescribeTable, error) {
+	var ret response.DescribeTable
+
+	info, err := s.executor.DescribeTable(ctx, req.GetTableID())
+	if err != nil {
+		return nil, err
+	}
+	ret.Info = &info
+
+	return &ret, nil
+}
+
+func (s *SourceManagerServer) UpdateTable(ctx context.Context, req *request.UpdateTable) (*model.EmptyStruct, error) {
+	err := s.executor.UpdateTable(ctx, req)
+	return &model.EmptyStruct{}, err
+}
+
+func (s *SourceManagerServer) DeleteTable(ctx context.Context, req *request.DeleteTable) (*model.EmptyStruct, error) {
+	err := s.executor.DeleteTable(ctx, req.GetTableIDs())
+	return &model.EmptyStruct{}, err
+}
+
+func (s *SourceManagerServer) List(ctx context.Context, req *request.ListSource) (*response.ListSource, error) {
+	resp, err := s.executor.List(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+func (s *SourceManagerServer) ListTable(ctx context.Context, req *request.ListTable) (*response.ListTable, error) {
+	resp, err := s.executor.ListTable(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+func (s *SourceManagerServer) Delete(ctx context.Context, req *request.DeleteSource) (*model.EmptyStruct, error) {
+	err := s.executor.Delete(ctx, req.GetSourceIDs(), true)
+	return &model.EmptyStruct{}, err
+}
+
+func (s *SourceManagerServer) DeleteAll(ctx context.Context, req *request.DeleteAllSource) (*model.EmptyStruct, error) {
+	err := s.executor.DeleteAll(ctx, req.GetSpaceIDs())
+	return &model.EmptyStruct{}, err
+}
+
+func (s *SourceManagerServer) SourceTables(ctx context.Context, req *request.SourceTables) (*response.JsonList, error) {
+	resp, err := s.executor.SourceTables(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+func (s *SourceManagerServer) TableColumns(ctx context.Context, req *request.TableColumns) (*response.TableColumns, error) {
+	resp, err := s.executor.TableColumns(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
 }

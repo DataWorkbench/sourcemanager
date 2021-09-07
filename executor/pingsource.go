@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/common/qerror"
+	"github.com/DataWorkbench/gproto/pkg/model"
 	"github.com/Shopify/sarama"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -25,16 +25,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func PingMysql(url string) (err error) {
-	var m constants.SourceMysqlParams
-
-	if err = json.Unmarshal([]byte(url), &m); err != nil {
-		return
-	}
-
+func PingMysql(url *model.MySQLUrl) (err error) {
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		m.User, m.Password, m.Host, m.Port, m.Database,
+		url.User, url.Password, url.Host, url.Port, url.Database,
 	)
 
 	var db *gorm.DB
@@ -48,16 +42,10 @@ func PingMysql(url string) (err error) {
 	return
 }
 
-func PingPostgreSQL(url string) (err error) {
-	var p constants.SourcePostgreSQLParams
-
-	if err = json.Unmarshal([]byte(url), &p); err != nil {
-		return
-	}
-
+func PingPostgreSQL(url *model.PostgreSQLUrl) (err error) {
 	dsn := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%d  dbname=%s ",
-		p.User, p.Password, p.Host, p.Port, p.Database,
+		url.User, url.Password, url.Host, url.Port, url.Database,
 	)
 
 	var db *gorm.DB
@@ -71,24 +59,19 @@ func PingPostgreSQL(url string) (err error) {
 	return
 }
 
-func PingClickHouse(url string) (err error) {
+func PingClickHouse(url *model.ClickHouseUrl) (err error) {
 	var (
-		p       constants.SourceClickHouseParams
 		client  *http.Client
 		req     *http.Request
 		rep     *http.Response
 		reqBody io.Reader
 	)
 
-	if err = json.Unmarshal([]byte(url), &p); err != nil {
-		return
-	}
-
 	client = &http.Client{Timeout: time.Second * 10}
 	reqBody = strings.NewReader("SELECT 1")
 	dsn := fmt.Sprintf(
 		"http://%s:%d/?user=%s&password=%s&database=%s",
-		p.Host, p.Port, p.User, p.Password, p.Database,
+		url.Host, url.Port, url.User, url.Password, url.Database,
 	)
 
 	req, err = http.NewRequest(http.MethodGet, dsn, reqBody)
@@ -112,14 +95,8 @@ func PingClickHouse(url string) (err error) {
 	return
 }
 
-func PingKafka(url string) (err error) {
-	var k constants.SourceKafkaParams
-
-	if err = json.Unmarshal([]byte(url), &k); err != nil {
-		return
-	}
-
-	dsn := fmt.Sprintf("%s:%d", k.Host, k.Port)
+func PingKafka(url *model.KafkaUrl) (err error) {
+	dsn := fmt.Sprintf("%s", url.KafkaBrokers)
 
 	consumer, terr := sarama.NewConsumer([]string{dsn}, nil)
 	if terr != nil {
@@ -130,16 +107,10 @@ func PingKafka(url string) (err error) {
 	return
 }
 
-func PingS3(url string) (err error) {
-	var s constants.SourceS3Params
-
-	if err = json.Unmarshal([]byte(url), &s); err != nil {
-		return
-	}
-
+func PingS3(url *model.S3Url) (err error) {
 	sess, err1 := session.NewSession(&aws.Config{
-		Credentials: credentials.NewStaticCredentials(s.AccessKey, s.SecretKey, ""),
-		Endpoint:    aws.String(s.EndPoint),
+		Credentials: credentials.NewStaticCredentials(url.AccessKey, url.SecretKey, ""),
+		Endpoint:    aws.String(url.EndPoint),
 		Region:      aws.String("us-east-1"),
 	})
 	if err1 != nil {
@@ -156,59 +127,55 @@ func PingS3(url string) (err error) {
 	return
 }
 
-func PingHbase(url string) (err error) {
+func PingHbase(url *model.HbaseUrl) (err error) {
 	var (
-		s    constants.SourceHbaseParams
 		conn *zk.Conn
 	)
 
-	if err = json.Unmarshal([]byte(url), &s); err != nil {
-		return
-	}
-
-	hosts := []string{s.Zookeeper}
+	hosts := []string{url.Zookeeper}
 	conn, _, err = zk.Connect(hosts, time.Second*10)
 	defer conn.Close()
 	return
 }
 
-func PingFtp(url string) (err error) {
+func PingFtp(url *model.FtpUrl) (err error) {
 	var (
-		s    constants.SourceFtpParams
 		conn *goftp.FTP
 	)
 
-	if err = json.Unmarshal([]byte(url), &s); err != nil {
-		return
-	}
-	host := s.Host
-	port := s.Port
-	if conn, err = goftp.Connect(fmt.Sprintf("%v:%d", host, port)); err != nil {
+	if conn, err = goftp.Connect(fmt.Sprintf("%v:%d", url.Host, url.Port)); err != nil {
 		return
 	}
 	defer conn.Close()
 	return
 }
 
-func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype string, url string, enginetype string) (err error) {
-	if err = ex.checkSourcemanagerUrl(constants.JSONString(url), enginetype, sourcetype); err != nil {
+func PingHDFS(url *model.HDFSUrl) (err error) {
+	//TODO
+	return
+}
+
+func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype string, url *model.SourceUrl) (err error) {
+	if err = ex.checkSourceInfo(url, sourcetype); err != nil {
 		return
 	}
 
 	if sourcetype == constants.SourceTypeMysql {
-		err = PingMysql(url)
+		err = PingMysql(url.GetMySQL())
 	} else if sourcetype == constants.SourceTypePostgreSQL {
-		err = PingPostgreSQL(url)
+		err = PingPostgreSQL(url.GetPostgreSQL())
 	} else if sourcetype == constants.SourceTypeKafka {
-		err = PingKafka(url)
+		err = PingKafka(url.GetKafka())
 	} else if sourcetype == constants.SourceTypeS3 {
-		err = PingS3(url)
+		err = PingS3(url.GetS3())
 	} else if sourcetype == constants.SourceTypeClickHouse {
-		err = PingClickHouse(url)
+		err = PingClickHouse(url.GetClickHouse())
 	} else if sourcetype == constants.SourceTypeHbase {
-		err = PingHbase(url)
+		err = PingHbase(url.GetHbase())
 	} else if sourcetype == constants.SourceTypeFtp {
-		err = PingFtp(url)
+		err = PingFtp(url.GetFtp())
+	} else if sourcetype == constants.SourceTypeHDFS {
+		err = PingHDFS(url.GetHDFS())
 	} else {
 		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
 		err = qerror.ConnectSourceFailed

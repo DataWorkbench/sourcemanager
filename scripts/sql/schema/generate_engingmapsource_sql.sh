@@ -28,6 +28,10 @@ Ftp="Ftp"
 Ftp_image=`base64 -w 10000000 Ftp.png`
 Ftp_desc="FTP是一种数据传输协议，将电脑上的数据与服务器数据进行交换"
 
-sourcetype="{\"SourceList\": [{\"name\":\"$MySQL\", \"image\": \"$MySQL_image\", \"desc\": \"$MySQL_desc\"}, {\"name\": \"$PostgreSQL\", \"image\": \"$PostgreSQL_image\", \"desc\": \"$PostgreSQL_desc\"}, {\"name\":\"$S3\", \"image\": \"$S3_image\", \"desc\": \"$S3_desc\"}, {\"name\":\"$ClickHouse\", \"image\": \"$ClickHouse_image\", \"desc\": \"$ClickHouse_desc\"} ,{\"name\":\"$Hbase\",\"image\": \"$Hbase_image\", \"desc\": \"$Hbase_desc\"} ,{\"name\":\"$Kafka\", \"image\": \"$Kafka_image\", \"desc\": \"$Kafka_desc\"} ,{\"name\":\"$Ftp\", \"image\": \"$Ftp_image\", \"desc\": \"$Ftp_desc\"}]}"
+HDFS="HDFS"
+HDFS_image=`base64 -w 10000000 HDFS.png`
+HDFS_desc="HDFS是一个高度容错性的系统，适合部署在廉价的机器上。HDFS能提供高吞吐量的数据访问，非常适合大规模数据集上的应用。"
 
-echo "insert into enginemapsource values('flink', '$sourcetype');"
+sourcetype="{\"SourceList\": [{\"name\":\"$MySQL\", \"image\": \"$MySQL_image\", \"desc\": \"$MySQL_desc\"}, {\"name\": \"$PostgreSQL\", \"image\": \"$PostgreSQL_image\", \"desc\": \"$PostgreSQL_desc\"}, {\"name\":\"$S3\", \"image\": \"$S3_image\", \"desc\": \"$S3_desc\"}, {\"name\":\"$ClickHouse\", \"image\": \"$ClickHouse_image\", \"desc\": \"$ClickHouse_desc\"} ,{\"name\":\"$Hbase\",\"image\": \"$Hbase_image\", \"desc\": \"$Hbase_desc\"} ,{\"name\":\"$Kafka\", \"image\": \"$Kafka_image\", \"desc\": \"$Kafka_desc\"} ,{\"name\":\"$Ftp\", \"image\": \"$Ftp_image\", \"desc\": \"$Ftp_desc\"}, {\"name\":\"$HDFS\", \"image\": \"$HDFS_image\", \"desc\": \"$HDFS_desc\"}]}"
+
+echo "update sourceutile set sourcekind = '$sourcetype' where enginetype='flink';" >> V0.0.0__sourcemanager.sql

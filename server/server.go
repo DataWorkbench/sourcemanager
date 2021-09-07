@@ -3,12 +3,13 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/DataWorkbench/common/gtrace"
 	"io"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/DataWorkbench/common/gtrace"
 
 	"github.com/DataWorkbench/common/gormwrap"
 	"github.com/DataWorkbench/common/utils/buildinfo"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/DataWorkbench/common/grpcwrap"
 	"github.com/DataWorkbench/common/metrics"
+
 	//"github.com/DataWorkbench/common/trace"
 	"github.com/DataWorkbench/gproto/pkg/smpb"
 

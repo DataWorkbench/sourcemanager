@@ -8,7 +8,7 @@ create table sourceutile(
 	dataformat varchar(256),
 	sourcekind longtext
 ) ENGINE=InnoDB;
-alter table sourcetuile add constraint sourceutile_pkey primary key(enginetype);
+alter table sourceutile add constraint sourceutile_pkey primary key(enginetype);
 
 insert into sourceutile(enginetype, datatype, dataformat) values('flink', '{"jsonlist": ["STRING", "BOOLEAN", "BYTES", "DECIMAL", "TINYINT", "SMALLINT", "INTEGER", "BIGINT", "FLOAT", "DOUBLE", "DATE", "TIME", "TIMESTAMP", "TIMESTAMP WITH LOCAL TIME ZONE", "INTERVAL", "ARRAY", "MULTISET", "MAP", "ROW", "RAW"]}', '{"jsonlist": ["csv", "json", "avro", "debezium-json", "canal-json", "parquet", "orc"]}');
 

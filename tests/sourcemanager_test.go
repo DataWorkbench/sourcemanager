@@ -748,10 +748,10 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 
 func Clean(t *testing.T) {
 	var (
-		d request.DeleteAllSource
+		d request.DeleteWorkspaces
 	)
 
-	d.SpaceIDs = []string{MysqlManager.SpaceID}
+	d.SpaceIds = []string{MysqlManager.SpaceID}
 	_, err := client.DeleteAll(ctx, &d)
 	require.Nil(t, err, "%+v", err)
 }

@@ -145,7 +145,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	info.Comment = req.GetComment()
 	info.Url = req.GetUrl()
 	info.State = constants.SourceEnableState
-	info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	info.CreateTime = time.Now().Unix()
 	info.UpdateTime = info.CreateTime
 
 	if err = ex.checkSourceInfo(info.Url, info.SourceType); err != nil {
@@ -201,7 +201,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 	info.Name = req.GetName()
 	info.Comment = req.GetComment()
 	info.Url = req.GetUrl()
-	info.UpdateTime = time.Now().Format("2006-01-02 15:04:05")
+	info.UpdateTime = time.Now().Unix()
 
 	if err = ex.CheckSourceState(ctx, info.SourceID); err != nil {
 		return
@@ -261,7 +261,7 @@ func (ex *SourcemanagerExecutor) ChangeSourceState(ctx context.Context, sourceID
 		Exprs: []clause.Expression{
 			clause.Or(eqExpr...),
 		},
-	}).Updates(map[string]interface{}{"state": state, "updatetime": time.Now().Format("2006-01-02 15:04:05")}).Error
+	}).Updates(map[string]interface{}{"state": state, "updatetime": time.Now().Unix()}).Error
 	if err != nil {
 		return
 	}
@@ -477,7 +477,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	info.Comment = req.GetComment()
 	info.Url = req.GetUrl()
 	info.Direction = req.GetDirection()
-	info.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	info.CreateTime = time.Now().Unix()
 	info.UpdateTime = info.CreateTime
 
 	if err = ex.CheckSourceState(ctx, info.SourceID); err != nil {
@@ -529,7 +529,7 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 	info.Comment = req.GetComment()
 	info.Url = req.GetUrl()
 	info.Direction = req.GetDirection()
-	info.UpdateTime = time.Now().Format("2006-01-02 15:04:05")
+	info.UpdateTime = time.Now().Unix()
 
 	// DescribeTable will Check source State
 	selfInfo, err = ex.DescribeTable(ctx, info.TableID)

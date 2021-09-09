@@ -143,8 +143,8 @@ func (s *SourceManagerServer) Delete(ctx context.Context, req *request.DeleteSou
 	return &model.EmptyStruct{}, err
 }
 
-func (s *SourceManagerServer) DeleteAll(ctx context.Context, req *request.DeleteAllSource) (*model.EmptyStruct, error) {
-	err := s.executor.DeleteAll(ctx, req.GetSpaceIDs())
+func (s *SourceManagerServer) DeleteAll(ctx context.Context, req *request.DeleteWorkspaces) (*model.EmptyStruct, error) {
+	err := s.executor.DeleteAll(ctx, req.GetSpaceIds())
 	return &model.EmptyStruct{}, err
 }
 

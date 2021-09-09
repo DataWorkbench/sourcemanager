@@ -21,8 +21,8 @@ create table sourcemanager(
 	name varchar(64) not null,
 	comment varchar(256),
 	url varchar(8000),
-	createtime timestamp default now(),
-	updatetime timestamp,
+	createtime BIGINT(20) UNSIGNED NOT NULL,
+	updatetime BIGINT(20) UNSIGNED NOT NULL,
 	state varchar(16)
 ) ENGINE=InnoDB;
 alter table sourcemanager add constraint sourcemanager_pkey primary key(sourceid);
@@ -38,8 +38,8 @@ create table sourcetables(
 	name varchar(64) not null,
 	comment varchar(256),
 	url varchar(8000),
-	createtime timestamp default now(),
-	updatetime timestamp,
+	createtime BIGINT(20) UNSIGNED NOT NULL,
+	updatetime BIGINT(20) UNSIGNED NOT NULL,
 	direction varchar(16),
 	foreign key(sourceid) references sourcemanager(sourceid)
 ) ENGINE=InnoDB;

@@ -298,47 +298,29 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, sourceIDs []string,
 	return
 }
 
-func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, SpaceIDs []string) (err error) {
-	for _, SpaceID := range SpaceIDs {
-		var (
-			lm    request.ListSource
-			mresp response.ListSource
-		)
+func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, spaceIDs []string) (err error) {
+	if len(spaceIDs) == 0 {
+		return
+	}
 
-		lm.Limit = MAXRows
-		lm.SpaceID = SpaceID
-		mresp, err = ex.List(ctx, &lm)
-		if err != nil {
-			return
-		}
-		for _, sourceInfo := range mresp.Infos {
-			var (
-				lt       request.ListTable
-				tresp    response.ListTable
-				tableIDs []string
-			)
+	eqExpr := make([]clause.Expression, len(spaceIDs))
+	for i := 0; i < len(spaceIDs); i++ {
+		eqExpr[i] = clause.Eq{Column: "spaceid", Value: spaceIDs[i]}
+	}
 
-			lt.Limit = MAXRows
-			lt.SourceID = sourceInfo.Info.SourceID
-			tresp, err = ex.ListTable(ctx, &lt)
-			if err != nil {
-				return
-			}
+	db := ex.db.WithContext(ctx)
+	err = db.Table(TableName).
+		Clauses(clause.Where{Exprs: []clause.Expression{clause.Or(eqExpr...)}}).
+		Delete("").Error
+	if err != nil {
+		return
+	}
 
-			for _, tableInfo := range tresp.Infos {
-				tableIDs = append(tableIDs, tableInfo.TableID)
-			}
-
-			err = ex.DeleteTable(ctx, tableIDs)
-			if err != nil {
-				return
-			}
-
-			err = ex.Delete(ctx, []string{sourceInfo.Info.SourceID}, false)
-			if err != nil {
-				return
-			}
-		}
+	err = db.Table(SourceTableName).
+		Clauses(clause.Where{Exprs: []clause.Expression{clause.Or(eqExpr...)}}).
+		Delete("").Error
+	if err != nil {
+		return
 	}
 
 	return

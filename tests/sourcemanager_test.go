@@ -793,3 +793,16 @@ func Test_Clean(t *testing.T) {
 	mainInit(t)
 	Clean(t)
 }
+
+func Test_CreateTest(t *testing.T) {
+	mainInit(t)
+	Clean(t)
+	var err error
+
+	_, err = client.Create(ctx, &MysqlManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.CreateTable(ctx, &TableMysqlSource)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.CreateTable(ctx, &TableMysqlDest)
+	require.Nil(t, err, "%+v", err)
+}

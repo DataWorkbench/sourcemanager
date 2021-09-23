@@ -690,7 +690,7 @@ func (ex *SourcemanagerExecutor) SourceTables(ctx context.Context, req *request.
 	} else if sourceInfo.SourceType == constants.SourceTypeMysql {
 		resp, err = GetMysqlSourceTables(sourceInfo.GetUrl().GetMySQL())
 	} else if sourceInfo.SourceType == constants.SourceTypeClickHouse {
-		//resp, err = GetClickHouseSourceTables(sourceInfo.Url)
+		resp, err = GetClickHouseSourceTables(sourceInfo.GetUrl().GetClickHouse())
 	} else if sourceInfo.SourceType == constants.SourceTypeHbase {
 		//resp, err = GetHbaseSourceTables(sourceInfo.Url)
 	} else if sourceInfo.SourceType == constants.SourceTypeKafka {
@@ -712,7 +712,7 @@ func (ex *SourcemanagerExecutor) TableColumns(ctx context.Context, req *request.
 	} else if sourceInfo.SourceType == constants.SourceTypeMysql {
 		resp, err = GetMysqlSourceTableColumns(sourceInfo.GetUrl().GetMySQL(), req.GetTableName())
 	} else if sourceInfo.SourceType == constants.SourceTypeClickHouse {
-		//resp, err = GetClickHouseSourceTables(sourceInfo.Url)
+		//resp, err = GetClickHouseSourceTableColumns(sourceInfo.GetUrl().GetClickHouse(), req.GetTableName())
 	} else if sourceInfo.SourceType == constants.SourceTypeHbase {
 		//resp, err = GetHbaseSourceTables(sourceInfo.Url)
 	} else if sourceInfo.SourceType == constants.SourceTypeKafka {

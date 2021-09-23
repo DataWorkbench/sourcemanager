@@ -2,7 +2,11 @@ package executor
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/DataWorkbench/gproto/pkg/model"
@@ -140,25 +144,21 @@ func GetPostgreSQLSourceTables(url constants.JSONString) (subItem []*SourceTable
 	}
 	return
 }
+*/
 
-func GetClickHouseSourceTables(url constants.JSONString) (subItem []*SourceTables, err error) {
+func GetClickHouseSourceTables(url *model.ClickHouseUrl) (resp response.JsonList, err error) {
 	var (
-		p       model.ClickHouseUrl
 		client  *http.Client
 		req     *http.Request
 		rep     *http.Response
 		reqBody io.Reader
 	)
 
-	if err = json.Unmarshal([]byte(url), &p); err != nil {
-		return
-	}
-
 	client = &http.Client{Timeout: time.Second * 10}
-	reqBody = strings.NewReader("select name as item from system.tables where database='" + p.Database + "'")
+	reqBody = strings.NewReader("select name as item from system.tables where database='" + url.GetDatabase() + "'")
 	dsn := fmt.Sprintf(
 		"http://%s:%d/?user=%s&password=%s&database=%s",
-		p.Host, p.Port, p.User, p.Password, p.Database,
+		url.GetHost(), url.GetPort(), url.GetUser(), url.GetPassword(), url.GetDatabase(),
 	)
 
 	req, err = http.NewRequest(http.MethodGet, dsn, reqBody)
@@ -183,15 +183,65 @@ func GetClickHouseSourceTables(url constants.JSONString) (subItem []*SourceTable
 	}
 
 	returnItems := strings.Split(string(repBody[0:len(repBody)-1]), "\n")
-	subItem = make([]*SourceTables, len(returnItems))
-
 	for i := 0; i <= len(returnItems); i++ {
-		subItem[i].Item = returnItems[i]
+		resp.JsonList = append(resp.JsonList, returnItems[i])
 	}
 
 	return
 }
 
+//func GetClickHouseSourceTables(url constants.JSONString) (subItem []*SourceTables, err error) {
+//	var (
+//		p       model.ClickHouseUrl
+//		client  *http.Client
+//		req     *http.Request
+//		rep     *http.Response
+//		reqBody io.Reader
+//	)
+//
+//	if err = json.Unmarshal([]byte(url), &p); err != nil {
+//		return
+//	}
+//
+//	client = &http.Client{Timeout: time.Second * 10}
+//	reqBody = strings.NewReader("select distinct table from system.columns where database='" + p.Database + "'")
+//	dsn := fmt.Sprintf(
+//		"http://%s:%d/?user=%s&password=%s&database=%s",
+//		p.Host, p.Port, p.User, p.Password, p.Database,
+//	)
+//
+//	req, err = http.NewRequest(http.MethodGet, dsn, reqBody)
+//	if err != nil {
+//		return
+//	}
+//
+//	rep, err = client.Do(req)
+//	if err != nil {
+//		return
+//	}
+//
+//	//select name as item from system.tables where database='default';
+//
+//	repBody, _ := ioutil.ReadAll(rep.Body)
+//	rep.Body.Close()
+//
+//	if rep.StatusCode != http.StatusOK {
+//		err = fmt.Errorf("%s request failed, http status code %d, message %s", dsn, rep.StatusCode, string(repBody))
+//		rep.Body.Close()
+//		return
+//	}
+//
+//	returnItems := strings.Split(string(repBody[0:len(repBody)-1]), "\n")
+//	subItem = make([]*SourceTables, len(returnItems))
+//
+//	for i := 0; i <= len(returnItems); i++ {
+//		subItem[i].Item = returnItems[i]
+//	}
+//
+//	return
+//}
+
+/*
 func GetKafkaSourceTables(url constants.JSONString) (subItem []*SourceTables, err error) {
 	var k model.KafkaUrl
 
@@ -209,6 +259,7 @@ func GetKafkaSourceTables(url constants.JSONString) (subItem []*SourceTables, er
 	consumer.Close()
 	return
 }
+
 
 func GetHbaseSourceTables(url constants.JSONString) (subItem []*SourceTables, err error) {
 	var (

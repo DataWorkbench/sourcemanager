@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -151,7 +152,20 @@ func PingFtp(url *model.FtpUrl) (err error) {
 }
 
 func PingHDFS(url *model.HDFSUrl) (err error) {
-	//TODO
+	// https://github.com/colinmarc/hdfs -- install the hadoop client. so don't use it.
+	// https://studygolang.com/articles/766 -- use 50070 http port. but user input the IPC port.
+
+	for _, node := range url.GetNodes() {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", node.GetNameNode, node.GetPort()), 3*time.Second)
+		if err == nil && conn != nil {
+			conn.Close()
+			return nil
+		}
+		if err == nil && conn == nil {
+			err = fmt.Errorf("hdfs can't connected")
+		}
+	}
+
 	return
 }
 

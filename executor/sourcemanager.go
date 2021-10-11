@@ -385,7 +385,7 @@ func (ex *SourcemanagerExecutor) DataType(ctx context.Context) (ret response.Jso
 	return
 }
 
-func (ex *SourcemanagerExecutor) checkSourcetablesUrl(ctx context.Context, url *model.TableUrl, sourceid string) (err error) {
+func (ex *SourcemanagerExecutor) checkSourcetablesUrl(ctx context.Context, url *model.TableDefine, sourceid string) (err error) {
 	descInfo, _ := ex.Describe(ctx, sourceid, false)
 
 	sourcetype := descInfo.SourceType
@@ -457,8 +457,8 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	info.SpaceID = req.GetSpaceID()
 	info.Name = req.GetName()
 	info.Comment = req.GetComment()
-	info.Url = req.GetUrl()
-	info.Direction = req.GetDirection()
+	info.Define = req.GetDefine()
+	info.TableKind = req.GetTableKind()
 	info.CreateTime = time.Now().Unix()
 	info.UpdateTime = info.CreateTime
 
@@ -466,7 +466,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 		return
 	}
 
-	if err = ex.checkSourcetablesUrl(ctx, info.Url, info.SourceID); err != nil {
+	if err = ex.checkSourcetablesUrl(ctx, info.Define, info.SourceID); err != nil {
 		return
 	}
 
@@ -509,8 +509,8 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 	info.TableID = req.GetTableID()
 	info.Name = req.GetName()
 	info.Comment = req.GetComment()
-	info.Url = req.GetUrl()
-	info.Direction = req.GetDirection()
+	info.Define = req.GetDefine()
+	info.TableKind = req.GetTableKind()
 	info.UpdateTime = time.Now().Unix()
 
 	// DescribeTable will Check source State
@@ -519,7 +519,7 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 		return
 	}
 
-	if err = ex.checkSourcetablesUrl(ctx, info.Url, selfInfo.SourceID); err != nil {
+	if err = ex.checkSourcetablesUrl(ctx, info.Define, selfInfo.SourceID); err != nil {
 		return
 	}
 
@@ -657,7 +657,25 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 	}
 
 	// Build where exprs.
-	exprs := []clause.Expression{clause.Eq{Column: "sourceid", Value: input.SourceID}}
+	exprs := []clause.Expression{}
+	if len(input.SpaceID) > 0 {
+		exprs = append(exprs, clause.Eq{
+			Column: "spaceid",
+			Value:  input.SpaceID,
+		})
+	}
+	if len(input.SourceID) > 0 {
+		exprs = append(exprs, clause.Eq{
+			Column: "sourceid",
+			Value:  input.SourceID,
+		})
+	}
+	if len(input.TableKind) > 0 {
+		exprs = append(exprs, clause.Eq{
+			Column: "tablekind",
+			Value:  input.TableKind,
+		})
+	}
 	if len(input.Search) > 0 {
 		exprs = append(exprs, clause.Like{
 			Column: "name",
@@ -686,15 +704,11 @@ func (ex *SourcemanagerExecutor) SourceTables(ctx context.Context, req *request.
 		return
 	}
 	if sourceInfo.SourceType == constants.SourceTypePostgreSQL {
-		//resp, err = GetPostgreSQLSourceTables(sourceInfo.Url)
+		resp, err = GetPostgreSQLSourceTables(sourceInfo.GetUrl().GetPostgreSQL())
 	} else if sourceInfo.SourceType == constants.SourceTypeMysql {
 		resp, err = GetMysqlSourceTables(sourceInfo.GetUrl().GetMySQL())
 	} else if sourceInfo.SourceType == constants.SourceTypeClickHouse {
 		resp, err = GetClickHouseSourceTables(sourceInfo.GetUrl().GetClickHouse())
-	} else if sourceInfo.SourceType == constants.SourceTypeHbase {
-		//resp, err = GetHbaseSourceTables(sourceInfo.Url)
-	} else if sourceInfo.SourceType == constants.SourceTypeKafka {
-		//resp, err = GetKafkaSourceTables(sourceInfo.Url)
 	} else {
 		err = qerror.NotSupportSourceType.Format(sourceInfo.SourceType)
 	}
@@ -708,15 +722,11 @@ func (ex *SourcemanagerExecutor) TableColumns(ctx context.Context, req *request.
 		return
 	}
 	if sourceInfo.SourceType == constants.SourceTypePostgreSQL {
-		//resp, err = GetPostgreSQLSourceTables(sourceInfo.Url)
+		resp, err = GetPostgreSQLSourceTableColumns(sourceInfo.GetUrl().GetPostgreSQL(), req.GetTableName())
 	} else if sourceInfo.SourceType == constants.SourceTypeMysql {
 		resp, err = GetMysqlSourceTableColumns(sourceInfo.GetUrl().GetMySQL(), req.GetTableName())
 	} else if sourceInfo.SourceType == constants.SourceTypeClickHouse {
-		//resp, err = GetClickHouseSourceTableColumns(sourceInfo.GetUrl().GetClickHouse(), req.GetTableName())
-	} else if sourceInfo.SourceType == constants.SourceTypeHbase {
-		//resp, err = GetHbaseSourceTables(sourceInfo.Url)
-	} else if sourceInfo.SourceType == constants.SourceTypeKafka {
-		//resp, err = GetKafkaSourceTables(sourceInfo.Url)
+		resp, err = GetClickHouseSourceTableColumns(sourceInfo.GetUrl().GetClickHouse(), req.GetTableName())
 	} else {
 		err = qerror.NotSupportSourceType.Format(sourceInfo.SourceType)
 	}

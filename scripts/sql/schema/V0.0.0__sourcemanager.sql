@@ -38,10 +38,10 @@ create table sourcetables(
 	spaceid varchar(24) not null,
 	name varchar(64) not null,
 	comment varchar(256),
-	url varchar(8000),
+	define varchar(8000),
 	createtime BIGINT(20) UNSIGNED NOT NULL,
 	updatetime BIGINT(20) UNSIGNED NOT NULL,
-	direction varchar(16),
+	tablekind varchar(16),
 	foreign key(sourceid) references sourcemanager(sourceid)
 ) ENGINE=InnoDB;
 alter table sourcetables add constraint sourcetables_pkey primary key(tableid);

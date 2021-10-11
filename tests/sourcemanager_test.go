@@ -20,7 +20,6 @@ import (
 	"github.com/DataWorkbench/gproto/pkg/smpb"
 )
 
-// manager
 var MysqlManager request.CreateSource //name mysql
 var MysqlSource request.CreateTable
 var MysqlDest request.CreateTable
@@ -29,23 +28,25 @@ var ClickHouseManager request.CreateSource
 var ClickHouseSource request.CreateTable
 var ClickHouseDest request.CreateTable
 
-var HDFSManager request.CreateSource
-var HDFSSource request.CreateSource
-var HDFSDest request.CreateSource
+var KafkaManager request.CreateSource
+var KafkaSource request.CreateTable
 
 var PGManager request.CreateSource
-var NewSpaceManager request.CreateSource        // name mysql
-var NameExistsManager request.CreateSource      //create failed
-var NameErrorManager request.CreateSource       //create failed
-var JsonErrorManager request.CreateSource       //create failed
-var EngineTypeErrorManager request.CreateSource //create failed
-var SourceTypeErrorManager request.CreateSource //create failed
+
+//var PGSource request.CreateTable
+//var PGDest request.CreateTable
+
 var S3Manager request.CreateSource
 var HbaseManager request.CreateSource
 var FtpManager request.CreateSource
+var HDFSManager request.CreateSource
+
+var NewSpaceManager request.CreateSource        // name mysql
+var NameExistsManager request.CreateSource      //create failed
+var NameErrorManager request.CreateSource       //create failed
+var SourceTypeErrorManager request.CreateSource //create failed
 
 var TablePG request.CreateTable
-var TableKafka request.CreateTable
 var TableNameExists request.CreateTable
 var TableNameError request.CreateTable
 var TableJsonError request.CreateTable
@@ -71,40 +72,63 @@ func typeToJsonString(v interface{}) string {
 var client smpb.SourcemanagerClient
 var ctx context.Context
 var initDone bool
+var spaceid string
+var newspaceid string
 
 func mainInit(t *testing.T) {
 	if initDone == true {
 		return
 	}
 	initDone = true
+	spaceid = "wks-0000000000000001"
+	newspaceid = "wks-0000000000000002"
 
 	// Mysql
 	// https://segmentfault.com/a/1190000039048901
-	MysqlManager = request.CreateSource{SourceID: "som-0123456789012345", SpaceID: "wks-0123456789012345", SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "",
+	MysqlManager = request.CreateSource{SourceID: "som-00000000000mysql", SpaceID: spaceid, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "",
 		Url: &model.SourceUrl{MySQL: &model.MySQLUrl{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
-	MysqlSource = request.CreateTable{TableID: "sot-0123456789012347", SourceID: MysqlManager.SourceID, SpaceID: "wks-0123456789012345", Name: "ms", Comment: "mysql", Direction: "source", Url: &model.TableUrl{MySQL: &model.MySQLTableUrl{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
-	MysqlDest = request.CreateTable{TableID: "sot-0123456789012348", SourceID: MysqlManager.SourceID, SpaceID: "wks-0123456789012345", Name: "md", Comment: "mysql dest", Direction: "destination", Url: &model.TableUrl{MySQL: &model.MySQLTableUrl{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
+	MysqlSource = request.CreateTable{TableID: "sot-00000mysqlsource", SourceID: MysqlManager.SourceID, SpaceID: spaceid, Name: "ms", Comment: "mysql", TableKind: "source", Define: &model.TableDefine{MySQL: &model.MySQLTableDefine{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
+	MysqlDest = request.CreateTable{TableID: "sot-0000000mysqldest", SourceID: MysqlManager.SourceID, SpaceID: spaceid, Name: "md", Comment: "mysql dest", TableKind: "destination", Define: &model.TableDefine{MySQL: &model.MySQLTableDefine{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 
-	// clickhouse
-	ClickHouseManager = request.CreateSource{SourceID: "som-0123456789012355", SpaceID: "wks-0123456789012345", SourceType: constants.SourceTypeClickHouse, Name: "clickhouse", Comment: "clickhouse", Url: &model.SourceUrl{ClickHouse: &model.ClickHouseUrl{User: "default", Password: "", Host: "127.0.0.1", Port: 8123, Database: "default"}}}
-	ClickHouseSource = request.CreateTable{TableID: "sot-0123456789012361", SourceID: ClickHouseManager.SourceID, SpaceID: "wks-0123456789012345", Name: "cke", Comment: "ckdest", Direction: "dest", Url: &model.TableUrl{ClickHouse: &model.ClickHouseTableUrl{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
-	ClickHouseDest = request.CreateTable{TableID: "sot-0123456789012368", SourceID: ClickHouseManager.SourceID, SpaceID: "wks-0123456789012345", Name: "cks", Comment: "cksource", Direction: "source", Url: &model.TableUrl{ClickHouse: &model.ClickHouseTableUrl{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
+	// ClickHouse
+	// create table cks(paycount bigint, paymoney varchar(10)) ENGINE=TinyLog;
+	// create table zz(id bigint, id1 bigint, t timestamp, v varchar(10), primary key (id)) engine=MergeTree;
+	ClickHouseManager = request.CreateSource{SourceID: "som-000000clickhouse", SpaceID: spaceid, SourceType: constants.SourceTypeClickHouse, Name: "clickhouse", Comment: "clickhouse", Url: &model.SourceUrl{ClickHouse: &model.ClickHouseUrl{User: "default", Password: "", Host: "127.0.0.1", Port: 8123, Database: "default"}}}
+	ClickHouseSource = request.CreateTable{TableID: "sot-clickhousesource", SourceID: ClickHouseManager.SourceID, SpaceID: spaceid, Name: "cks", Comment: "cksource", TableKind: "source", Define: &model.TableDefine{ClickHouse: &model.ClickHouseTableDefine{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "paymoney", Type: "varchar", Length: "10", Comment: "xxx", PrimaryKey: "f"}}}}}
+	ClickHouseDest = request.CreateTable{TableID: "sot-00clickhousedest", SourceID: ClickHouseManager.SourceID, SpaceID: spaceid, Name: "ckd", Comment: "ckdest", TableKind: "destination", Define: &model.TableDefine{ClickHouse: &model.ClickHouseTableDefine{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "paymoney", Type: "varchar", Length: "10", Comment: "xxx", PrimaryKey: "f"}}}}}
 
-	//PGManager = request.CreateSource{ID: "som-0123456789012346", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypePostgreSQL, Name: "pg", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourcePostgreSQLParams{User: "lzzhang", Password: "123456", Host: "127.0.0.1", Port: 5432, Database: "lzzhang"})}
-	//KafkaManager = request.CreateSource{ID: "som-0123456789012347", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeKafka, Name: "kafka", Comment: "create ok", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceKafkaParams{Host: "dataworkbench-kafka-for-test", Port: 9092})}
-	//NameExistsManager = request.CreateSource{ID: "som-0123456789012348", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create ok", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	//NameErrorManager = request.CreateSource{ID: "som-0123456789012349", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "hello.world", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	//NewSpaceManager = request.CreateSource{ID: "som-0123456789012350", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "newspace", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	//JsonErrorManager = request.CreateSource{ID: "som-0123456789012351", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: "Error.json . error"}
-	//EngineTypeErrorManager = request.CreateSource{ID: "som-0123456789012352", SpaceID: "wks-0123456789012346", EngineType: "NotFlink", SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	//SourceTypeErrorManager = request.CreateSource{ID: "som-0123456789012353", SpaceID: "wks-0123456789012346", EngineType: constants.EngineTypeFlink, SourceType: "ErrorSourceType", Name: "mysql", Comment: "create failed", Creator: constants.CreatorWorkBench, Url: typeToJsonString(constants.SourceMysqlParams{User: "root", Password: "123456", Host: "127.0.0.1", Port: 3306, Database: "data_workbench"})}
-	//S3Manager = request.CreateSource{ID: "som-0123456789012354", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeS3, Name: "s3", Comment: "qingcloud s3", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceS3Params{AccessKey: "RDTHDPNFWWDNWPIHESWK", SecretKey: "sVbVhAUsKGPPdiTOPAgveqCNhFjtvXFNpsPnQ7Hx", EndPoint: "http://s3.gd2.qingstor.com"})} // s3 not is url bucket
-	//HbaseManager = request.CreateSource{ID: "som-0123456789012356", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeHbase, Name: "hbase", Comment: "hbase", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceHbaseParams{Zookeeper: "hbase:2181", Znode: "/hbase"})}
-	//FtpManager = request.CreateSource{ID: "som-0123456789012357", SpaceID: "wks-0123456789012345", EngineType: constants.EngineTypeFlink, SourceType: constants.SourceTypeFtp, Name: "ftp", Comment: "ftp", Creator: constants.CreatorCustom, Url: typeToJsonString(constants.SourceFtpParams{Host: "42.193.101.183", Port: 21})}
+	// PostgreSQL
+	PGManager = request.CreateSource{SourceID: "som-000000postgresql", SpaceID: spaceid, SourceType: constants.SourceTypePostgreSQL, Name: "pg", Comment: "",
+		Url: &model.SourceUrl{PostgreSQL: &model.PostgreSQLUrl{User: "lzzhang", Password: "lzzhang", Host: "127.0.0.1", Database: "lzzhang", Port: 5432}}}
+	//PGSource = request.CreateTable{TableID: "sot-postgresqlsource", SourceID: PGManager.SourceID, SpaceID: spaceid, Name: "pgs", Comment: "pgs", TableKind: "source", Define: &model.TableDefine{MySQL: &model.MySQLTableDefine{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
+	//PGDest = request.CreateTable{TableID: "sot-00postgresqldest", SourceID: PGManager.SourceID, SpaceID: spaceid, Name: "pgd", Comment: "pgd", TableKind: "destination", Define: &model.TableDefine{MySQL: &model.MySQLTableDefine{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &model.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
+
+	// kafka {"paycount": 2, "paymoney": "EUR"} {"paycount": 1, "paymoney": "USD"}
+	KafkaManager = request.CreateSource{SourceID: "som-00000000000kafka", SpaceID: spaceid, SourceType: constants.SourceTypeKafka, Name: "kafka", Comment: "",
+		Url: &model.SourceUrl{Kafka: &model.KafkaUrl{KafkaBrokers: "dataworkbench-kafka-for-test:9092"}}}
+	KafkaSource = request.CreateTable{TableID: "sot-00000kafkasource", SourceID: KafkaManager.SourceID, SpaceID: spaceid, Name: "billing", Comment: "", TableKind: "source", Define: &model.TableDefine{Kafka: &model.KafkaTableDefine{SqlColumn: []*model.SqlColumnType{&model.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "f"}, &model.SqlColumnType{Column: "paymoney", Type: "string", Comment: "", PrimaryKey: "f"}}, TimeColumn: []*model.SqlTimeColumnType{&model.SqlTimeColumnType{Column: "tproctime", Type: "proctime"}}, Topic: "workbench", Format: "json", ConnectorOptions: []*model.ConnectorOption{&model.ConnectorOption{Name: "'json.fail-on-missing-field'", Value: "'false'"}, &model.ConnectorOption{Name: "'json.ignore-parse-errors'", Value: "'true'"}}}}}
+
+	S3Manager = request.CreateSource{SourceID: "som-00000000000000s3", SpaceID: spaceid, SourceType: constants.SourceTypeS3, Name: "s3",
+		Url: &model.SourceUrl{S3: &model.S3Url{}}}
+	//Url: &model.SourceUrl{S3: &model.S3Url{AccessKey: "RDTHDPNFWWDNWPIHESWK", SecretKey: "sVbVhAUsKGPPdiTOPAgveqCNhFjtvXFNpsPnQ7Hx", EndPoint: "http://s3.gd2.qingstor.com"}}}
+	HbaseManager = request.CreateSource{SourceID: "som-00000000000hbase", SpaceID: spaceid, SourceType: constants.SourceTypeHbase, Name: "hbase",
+		Url: &model.SourceUrl{Hbase: &model.HbaseUrl{Zookeeper: "hbase:2181", Znode: "/hbase"}}}
+	FtpManager = request.CreateSource{SourceID: "som-0000000000000ftp", SpaceID: spaceid, SourceType: constants.SourceTypeFtp, Name: "ftp",
+		Url: &model.SourceUrl{Ftp: &model.FtpUrl{Host: "42.193.101.183", Port: 21}}}
+	HDFSManager = request.CreateSource{SourceID: "som-000000000000hdfs", SpaceID: spaceid, SourceType: constants.SourceTypeHDFS, Name: "hdfs",
+		Url: &model.SourceUrl{HDFS: &model.HDFSUrl{Nodes: []*model.HDFSUrl_HDFSNodeUrl{&model.HDFSUrl_HDFSNodeUrl{NameNode: "127.0.0.1", Port: 8020}}}}}
+
+	NewSpaceManager = request.CreateSource{SourceID: "som-00000000newspace", SpaceID: newspaceid, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "newspace",
+		Url: &model.SourceUrl{MySQL: &model.MySQLUrl{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+	NameExistsManager = request.CreateSource{SourceID: "som-000000nameexists", SpaceID: spaceid, SourceType: constants.SourceTypeMysql, Name: "mysql",
+		Url: &model.SourceUrl{MySQL: &model.MySQLUrl{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+	NameErrorManager = request.CreateSource{SourceID: "som-000000nameerror", SpaceID: spaceid, SourceType: constants.SourceTypeMysql, Name: "mysql.mysql",
+		Url: &model.SourceUrl{MySQL: &model.MySQLUrl{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+	SourceTypeErrorManager = request.CreateSource{SourceID: "som-0sourcetypeerror", SpaceID: spaceid, SourceType: "SourceTypeError", Name: "SourceTypeError",
+		Url: &model.SourceUrl{MySQL: &model.MySQLUrl{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
 
 	//// Source Tables
 	//TablePG = request.CreateTable{ID: "sot-0123456789012345", SourceID: PGManager.ID, Name: "pd", Comment: "postgresql", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "id", Type: "bigint", PrimaryKey: "t"}, constants.SqlColumnType{Name: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}})}
-	//TableKafka = request.CreateTable{ID: "sot-0123456789012346", SourceID: KafkaManager.ID, Name: "billing", Comment: "Kafka", Url: typeToJsonString(constants.FlinkTableDefineKafka{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "paycount", Type: "bigint", PrimaryKey: "f"}, constants.SqlColumnType{Name: "paymoney", Type: "string", Comment: "xxx", PrimaryKey: "f"}, constants.SqlColumnType{Name: "tproctime", Type: "AS PROCTIME()"}}, Topic: "workbench", Format: "json", ConnectorOptions: []string{"'json.fail-on-missing-field' = 'false'", "'json.ignore-parse-errors' = 'true'"}})} //{"paycount": 2, "paymoney": "EUR"} {"paycount": 1, "paymoney": "USD"}
 	//TableNameExists = request.CreateTable{ID: "sot-0123456789012351", SourceID: MysqlManager.ID, Name: "ms", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "id", Type: "bigint", PrimaryKey: "t"}, constants.SqlColumnType{Name: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}})}
 	//TableNameError = request.CreateTable{ID: "sot-0123456789012352", SourceID: MysqlManager.ID, Name: "ms.ms", Comment: "to pd", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "id", Type: "bigint", PrimaryKey: "t"}, constants.SqlColumnType{Name: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}})}
 	//TableJsonError = request.CreateTable{ID: "sot-0123456789012353", SourceID: MysqlManager.ID, Name: "ms1", Comment: "to pd", Url: "sss,xx,xx, xx"}
@@ -123,7 +147,6 @@ func mainInit(t *testing.T) {
 	//TableFtpDest = request.CreateTable{ID: "sot-0123456789012367", SourceID: FtpManager.ID, Name: "ftpdest", Comment: "ftp dest", Url: typeToJsonString(constants.FlinkTableDefineFtp{Path: "/sink.csv", Format: "csv", SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "readName", Type: "string", Comment: "xxx"}, constants.SqlColumnType{Name: "cellPhone", Type: "string", Comment: "xxx"}, {Name: "universityName", Type: "string", Comment: "xxx"}, {Name: "city", Type: "string", Comment: "xxx"}, {Name: "street", Type: "string", Comment: "xxx"}, {Name: "ip", Type: "string", Comment: "xxx"}}, ConnectorOptions: []string{"'username' = 'ftptest'", "'password' = '123456'"}})}
 
 	address := "127.0.0.1:9104"
-	//address := "127.0.0.1:50001"
 	lp := glog.NewDefault()
 	ctx = glog.WithContext(context.Background(), lp)
 
@@ -158,28 +181,26 @@ func Test_CreateSource(t *testing.T) {
 	require.Nil(t, err, "%+v", err)
 	_, err = client.Create(ctx, &ClickHouseManager)
 	require.Nil(t, err, "%+v", err)
-	//_, err = client.Create(ctx, &PGManager)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.Create(ctx, &KafkaManager)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.Create(ctx, &NewSpaceManager)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.Create(ctx, &NameErrorManager)
-	//require.Equal(t, qerror.InvalidSourceName.Code(), errorCode(err))
-	//_, err = client.Create(ctx, &NameExistsManager)
-	//require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
-	//_, err = client.Create(ctx, &JsonErrorManager)
-	//require.Equal(t, qerror.InvalidJSON.Code(), errorCode(err))
-	//_, err = client.Create(ctx, &SourceTypeErrorManager)
-	//require.Equal(t, qerror.NotSupportSourceType.Code(), errorCode(err))
-	//_, err = client.Create(ctx, &EngineTypeErrorManager)
-	//require.Equal(t, qerror.NotSupportEngineType.Code(), errorCode(err))
-	//_, err = client.Create(ctx, &S3Manager)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.Create(ctx, &HbaseManager)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.Create(ctx, &FtpManager)
-	//require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &PGManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &KafkaManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &S3Manager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &HbaseManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &FtpManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &HDFSManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &NewSpaceManager)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.Create(ctx, &NameErrorManager)
+	require.Equal(t, qerror.InvalidSourceName.Code(), errorCode(err))
+	_, err = client.Create(ctx, &NameExistsManager)
+	require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
+	_, err = client.Create(ctx, &SourceTypeErrorManager)
+	require.Equal(t, qerror.NotSupportSourceType.Code(), errorCode(err))
 }
 
 func managerDescribe(t *testing.T, id string) *response.DescribeSource {
@@ -192,37 +213,6 @@ func managerDescribe(t *testing.T, id string) *response.DescribeSource {
 		rep, err = client.Describe(ctx, &d)
 		require.Nil(t, err, "%+v", err)
 		require.Equal(t, rep.Info.SourceID, d.SourceID)
-
-		d.SourceID = ClickHouseManager.SourceID
-		rep, err = client.Describe(ctx, &d)
-		require.Nil(t, err, "%+v", err)
-		require.Equal(t, rep.Info.SourceID, d.SourceID)
-
-		//d.ID = PGManager.ID
-		//rep, err = client.Describe(ctx, &d)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, rep.ID, d.ID)
-		//d.ID = KafkaManager.ID
-		//rep, err = client.Describe(ctx, &d)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, rep.ID, d.ID)
-		//d.ID = NewSpaceManager.ID
-		//rep, err = client.Describe(ctx, &d)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, rep.ID, d.ID)
-		//d.ID = S3Manager.ID
-		//rep, err = client.Describe(ctx, &d)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, rep.ID, d.ID)
-		//d.ID = HbaseManager.ID
-		//rep, err = client.Describe(ctx, &d)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, rep.ID, d.ID)
-		//d.ID = FtpManager.ID
-		//rep, err = client.Describe(ctx, &d)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, rep.ID, d.ID)
-		//return nil
 	} else {
 		d.SourceID = id
 		rep, err = client.Describe(ctx, &d)
@@ -240,6 +230,7 @@ func Test_DescribeSource(t *testing.T) {
 }
 
 func Test_UpdateSource(t *testing.T) {
+	mainInit(t)
 	var i request.UpdateSource
 	var err error
 
@@ -252,14 +243,6 @@ func Test_UpdateSource(t *testing.T) {
 	_, err = client.Update(ctx, &i)
 	require.Nil(t, err, "%+v", err)
 	require.Equal(t, i.Comment, managerDescribe(t, i.SourceID).Info.Comment)
-
-	//i.Name = PGManager.Name
-	//i.ID = MysqlManager.ID
-	//i.SourceType = MysqlManager.SourceType
-	//i.Url = MysqlManager.Url
-	//_, err = client.Update(ctx, &i)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
 }
 
 func Test_PingSource(t *testing.T) {
@@ -271,43 +254,40 @@ func Test_PingSource(t *testing.T) {
 	p.SourceType = MysqlManager.SourceType
 	p.Url = MysqlManager.Url
 	_, err = client.PingSource(ctx, &p)
-	require.Equal(t, qerror.ConnectSourceFailed.Code(), errorCode(err))
-	require.Nil(t, err, "%+v", err)
-
-	p.SourceType = ClickHouseManager.SourceType
-	p.Url = ClickHouseManager.Url
-	_, err = client.PingSource(ctx, &p)
-	require.Equal(t, qerror.ConnectSourceFailed.Code(), errorCode(err))
 	require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = PGManager.SourceType
 	//p.Url = PGManager.Url
-	//p.EngineType = PGManager.EngineType
 	//_, err = client.PingSource(ctx, &p)
-	//require.Equal(t, qerror.ConnectSourceFailed.Code(), errorCode(err))
+	//require.NotNil(t, err, "%+v", err)
+
+	//p.SourceType = ClickHouseManager.SourceType
+	//p.Url = ClickHouseManager.Url
+	//_, err = client.PingSource(ctx, &p)
+	//require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = KafkaManager.SourceType
 	//p.Url = KafkaManager.Url
-	//p.EngineType = KafkaManager.EngineType
 	//_, err = client.PingSource(ctx, &p)
 	//require.Nil(t, err, "%+v", err)
 
-	//p.SourceType = S3Manager.SourceType
-	//p.Url = S3Manager.Url
-	//p.EngineType = S3Manager.EngineType
-	//_, err = client.PingSource(ctx, &p)
-	//require.Nil(t, err, "%+v", err)
-	////require.Equal(t, qerror.ConnectSourceFailed.Code(), errorCode(err))
+	p.SourceType = S3Manager.SourceType
+	p.Url = S3Manager.Url
+	_, err = client.PingSource(ctx, &p)
+	require.NotNil(t, err, "%+v", err)
 
 	//p.SourceType = HbaseManager.SourceType
 	//p.Url = HbaseManager.Url
-	//p.EngineType = HbaseManager.EngineType
 	//_, err = client.PingSource(ctx, &p)
 	//require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = FtpManager.SourceType
 	//p.Url = FtpManager.Url
-	//p.EngineType = FtpManager.EngineType
+	//_, err = client.PingSource(ctx, &p)
+	//require.Nil(t, err, "%+v", err)
+
+	//p.SourceType = HDFSManager.SourceType
+	//p.Url = HDFSManager.Url
 	//_, err = client.PingSource(ctx, &p)
 	//require.Nil(t, err, "%+v", err)
 }
@@ -317,7 +297,7 @@ func Test_DisableSource(t *testing.T) {
 	var v request.DisableSource
 	var err error
 
-	v.SourceIDs = []string{MysqlManager.SourceID}
+	v.SourceIDs = []string{MysqlManager.SourceID, KafkaManager.SourceID}
 
 	_, err = client.Disable(ctx, &v)
 	require.Nil(t, err, "%+v", err)
@@ -333,13 +313,6 @@ func Test_DisableSource(t *testing.T) {
 	_, err = client.Update(ctx, &i)
 	require.NotNil(t, err, "%+v", err)
 	require.Equal(t, qerror.SourceIsDisable.Code(), errorCode(err))
-
-	//var i1 smpb.SotDescribeRequest
-
-	//i1.ID = MysqlSource.ID
-	//_, err = client.SotDescribe(ctx, &i1)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.SourceIsDisable.Code(), errorCode(err))
 }
 
 func Test_EnableSource(t *testing.T) {
@@ -347,7 +320,7 @@ func Test_EnableSource(t *testing.T) {
 	var v request.EnableSource
 	var err error
 
-	v.SourceIDs = []string{MysqlManager.SourceID}
+	v.SourceIDs = []string{MysqlManager.SourceID, KafkaManager.SourceID}
 
 	_, err = client.Enable(ctx, &v)
 	require.Nil(t, err, "%+v", err)
@@ -377,51 +350,17 @@ func Test_DataType(t *testing.T) {
 func Test_CreateTable(t *testing.T) {
 	var err error
 	mainInit(t)
-	//_, err = client.SotCreate(ctx, &TablePG)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableKafka)
-	//require.Nil(t, err, "%+v", err)
+
 	_, err = client.CreateTable(ctx, &MysqlSource)
 	require.Nil(t, err, "%+v", err)
 	_, err = client.CreateTable(ctx, &MysqlDest)
 	require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableNameExists)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
-	//_, err = client.SotCreate(ctx, &TableNameError)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.InvalidSourceName.Code(), errorCode(err))
-	//_, err = client.SotCreate(ctx, &TableJsonError)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.InvalidJSON.Code(), errorCode(err))
-	//_, err = client.SotCreate(ctx, &TableManagerError)
-	//require.NotNil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableMysqlDimensionSource)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableMysqlDimensionDest)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableMysqlCommonSource)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableMysqlCommonDest)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableS3Source)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableS3Dest)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &ClickHouseDest)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableUDFSource)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableUDFDest)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableHbaseSource)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableHbaseDest)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableFtpSource)
-	//require.Nil(t, err, "%+v", err)
-	//_, err = client.SotCreate(ctx, &TableFtpDest)
-	//require.Nil(t, err, "%+v", err)
+	_, err = client.CreateTable(ctx, &ClickHouseSource)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.CreateTable(ctx, &ClickHouseDest)
+	require.Nil(t, err, "%+v", err)
+	_, err = client.CreateTable(ctx, &KafkaSource)
+	require.Nil(t, err, "%+v", err)
 }
 
 func tablesDescribe(t *testing.T, id string) *model.TableInfo {
@@ -430,45 +369,9 @@ func tablesDescribe(t *testing.T, id string) *model.TableInfo {
 	var rep *response.DescribeTable
 
 	if id == "" {
-		//i.ID = TablePG.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableKafka.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
 		i.TableID = MysqlSource.TableID
 		rep, err = client.DescribeTable(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.TableID = MysqlDest.TableID
-		rep, err = client.DescribeTable(ctx, &i)
-		require.Nil(t, err, "%+v", err)
-		//i.ID = TableS3Source.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableS3Dest.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = ClickHouseDest.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableUDFSource.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableUDFDest.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableHbaseSource.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableHbaseDest.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableFtpSource.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableFtpDest.ID
-		//rep, err = client.SotDescribe(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
 	} else {
 		i.TableID = id
 		rep, err = client.DescribeTable(ctx, &i)
@@ -491,33 +394,12 @@ func Test_UpdateTable(t *testing.T) {
 	i.Comment = "Update"
 	i.TableID = MysqlSource.TableID
 	i.Name = MysqlSource.Name
-	i.Url = MysqlSource.Url
-	i.Direction = MysqlSource.Direction
+	i.Define = MysqlSource.Define
+	i.TableKind = MysqlSource.TableKind
 
 	_, err = client.UpdateTable(ctx, &i)
 	require.Nil(t, err, "%+v", err)
 	require.Equal(t, i.Comment, tablesDescribe(t, i.TableID).Comment)
-
-	//i.ID = MysqlSource.ID
-	//i.Name = "xx.xx"
-	//i.Url = MysqlSource.Url
-	//_, err = client.SotUpdate(ctx, &i)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.InvalidSourceName.Code(), errorCode(err))
-
-	//i.ID = TableKafka.ID
-	//i.Name = TableKafka.Name
-	//i.Url = "err, json, url"
-	//_, err = client.SotUpdate(ctx, &i)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.InvalidJSON.Code(), errorCode(err))
-
-	//i.ID = MysqlSource.ID
-	//i.Name = MysqlDest.Name
-	//i.Url = MysqlSource.Url
-	//_, err = client.SotUpdate(ctx, &i)
-	//require.NotNil(t, err, "%+v", err)
-	//require.Equal(t, qerror.ResourceAlreadyExists.Code(), errorCode(err))
 }
 
 func tablesDelete(t *testing.T, id string) {
@@ -525,57 +407,9 @@ func tablesDelete(t *testing.T, id string) {
 	var err error
 
 	if id == "" {
-		//i.ID = TablePG.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableKafka.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		i.TableIDs = []string{MysqlSource.TableID}
+		i.TableIDs = []string{MysqlSource.TableID, MysqlDest.TableID, ClickHouseSource.TableID, ClickHouseDest.TableID, KafkaSource.TableID}
 		_, err = client.DeleteTable(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		i.TableIDs = []string{MysqlDest.TableID}
-		_, err = client.DeleteTable(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableMysqlDimensionSource.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableMysqlDimensionDest.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableMysqlCommonSource.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableMysqlCommonDest.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableS3Source.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableS3Dest.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = ClickHouseDest.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableUDFSource.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableUDFDest.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableHbaseSource.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableHbaseDest.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableFtpSource.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//i.ID = TableFtpDest.ID
-		//_, err = client.SotDelete(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
 	} else {
 		i.TableIDs = []string{id}
 		_, err = client.DeleteTable(ctx, &i)
@@ -589,28 +423,21 @@ func managerLists(t *testing.T, SpaceID string) *response.ListSource {
 	var err error
 
 	if SpaceID == "" {
-		i.SpaceID = MysqlManager.SpaceID
+		i.SpaceID = spaceid
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 
-		i.SpaceID = MysqlManager.SpaceID
+		i.SpaceID = newspaceid
 		i.Limit = 100
 		i.Offset = 0
 		i.Search = "my"
 		rep, err = client.List(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 7, len(rep.Infos))
-		//require.Equal(t, int32(7), rep.Total)
+		require.Equal(t, 1, len(rep.Infos))
+		require.Equal(t, int64(1), rep.Total)
 
-		//i.SpaceID = NewSpaceManager.SpaceID
-		//i.Limit = 100
-		//i.Offset = 0
-		//rep, err = client.List(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 1, len(rep.Infos))
-		//require.Equal(t, int32(1), rep.Total)
 		return nil
 	} else {
 		i.SpaceID = SpaceID
@@ -634,68 +461,31 @@ func tablesLists(t *testing.T, SourceID string) *response.ListTable {
 	var rep *response.ListTable
 
 	if SourceID == "" {
-		//i.SourceID = TablePG.SourceID
-		//i.Limit = 100
-		//i.Offset = 0
-		//rep, err = client.SotList(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 1, len(rep.Infos))
-		//require.Equal(t, int32(1), rep.Total)
-
-		i.SourceID = MysqlSource.SourceID
+		i.SpaceID = spaceid
 		i.Limit = 100
 		i.Offset = 0
 		rep, err = client.ListTable(ctx, &i)
 		require.Nil(t, err, "%+v", err)
 
-		i.SourceID = MysqlSource.SourceID
+		i.SourceID = MysqlManager.SourceID
 		i.Limit = 100
 		i.Offset = 0
 		i.Search = "m"
 		rep, err = client.ListTable(ctx, &i)
 		require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 8, len(rep.Infos))
-		//require.Equal(t, int32(8), rep.Total)
+		require.Equal(t, 2, len(rep.Infos))
+		require.Equal(t, int64(2), rep.Total)
 
-		//i.SourceID = TableKafka.SourceID
-		//i.Limit = 100
-		//i.Offset = 0
-		//rep, err = client.SotList(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 1, len(rep.Infos))
-		//require.Equal(t, int32(1), rep.Total)
-
-		//i.SourceID = TableS3Source.SourceID
-		//i.Limit = 100
-		//i.Offset = 0
-		//rep, err = client.SotList(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 2, len(rep.Infos))
-		//require.Equal(t, int32(2), rep.Total)
-
-		//i.SourceID = ClickHouseDest.SourceID
-		//i.Limit = 100
-		//i.Offset = 0
-		//rep, err = client.SotList(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 1, len(rep.Infos))
-		//require.Equal(t, int32(1), rep.Total)
-
-		//i.SourceID = TableHbaseSource.SourceID
-		//i.Limit = 100
-		//i.Offset = 0
-		//rep, err = client.SotList(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 2, len(rep.Infos))
-		//require.Equal(t, int32(2), rep.Total)
-
-		//i.SourceID = TableFtpSource.SourceID
-		//i.Limit = 100
-		//i.Offset = 0
-		//rep, err = client.SotList(ctx, &i)
-		//require.Nil(t, err, "%+v", err)
-		//require.Equal(t, 2, len(rep.Infos))
-		//require.Equal(t, int32(2), rep.Total)
+		i.SpaceID = spaceid
+		i.SourceID = MysqlManager.SourceID
+		i.TableKind = "source"
+		i.Limit = 100
+		i.Offset = 0
+		i.Search = "m"
+		rep, err = client.ListTable(ctx, &i)
+		require.Nil(t, err, "%+v", err)
+		require.Equal(t, 1, len(rep.Infos))
+		require.Equal(t, int64(1), rep.Total)
 	} else {
 		i.SourceID = SourceID
 		i.Limit = 100
@@ -721,27 +511,7 @@ func managerDelete(t *testing.T, id string, iserror bool) {
 			i.SourceIDs = []string{MysqlManager.SourceID}
 			_, err = client.Delete(ctx, &i)
 			require.Nil(t, err, "%+v", err)
-			//i.ID = PGManager.ID
-			//_, err = client.Delete(ctx, &i)
-			//require.Nil(t, err, "%+v", err)
-			//i.ID = KafkaManager.ID
-			//_, err = client.Delete(ctx, &i)
-			//require.Nil(t, err, "%+v", err)
-			//i.ID = S3Manager.ID
-			//_, err = client.Delete(ctx, &i)
-			//require.Nil(t, err, "%+v", err)
-			//i.ID = ClickHouseManager.ID
-			//_, err = client.Delete(ctx, &i)
-			//require.Nil(t, err, "%+v", err)
-			//i.ID = HbaseManager.ID
-			//_, err = client.Delete(ctx, &i)
-			//require.Nil(t, err, "%+v", err)
-			//i.ID = NewSpaceManager.ID
-			//_, err = client.Delete(ctx, &i)
-			//require.Nil(t, err, "%+v", err)
-			//i.ID = FtpManager.ID
-			//_, err = client.Delete(ctx, &i)
-			//require.Nil(t, err, "%+v", err)
+			Clean(t)
 		} else {
 			i.SourceIDs = []string{MysqlManager.SourceID}
 			_, err = client.Delete(ctx, &i)
@@ -761,32 +531,50 @@ func Clean(t *testing.T) {
 		d request.DeleteWorkspaces
 	)
 
-	d.SpaceIds = []string{MysqlManager.SpaceID}
+	d.SpaceIds = []string{spaceid, newspaceid}
 	_, err := client.DeleteAll(ctx, &d)
 	require.Nil(t, err, "%+v", err)
 }
 
 func Test_SourceTables(t *testing.T) {
 	var v request.SourceTables
+	var err error
 
 	mainInit(t)
 
 	v.SourceID = MysqlManager.SourceID
-
-	_, err := client.SourceTables(ctx, &v)
+	_, err = client.SourceTables(ctx, &v)
 	require.Nil(t, err, "%+v", err)
+
+	//v.SourceID = ClickHouseManager.SourceID
+	//_, err = client.SourceTables(ctx, &v)
+	//require.Nil(t, err, "%+v", err)
+
+	//v.SourceID = PGManager.SourceID
+	//_, err = client.SourceTables(ctx, &v)
+	//require.Nil(t, err, "%+v", err)
 }
 
 func Test_TableColumns(t *testing.T) {
 	var v request.TableColumns
+	var err error
 
 	mainInit(t)
 
 	v.SourceID = MysqlManager.SourceID
 	v.TableName = "sourcemanager"
-
-	_, err := client.TableColumns(ctx, &v)
+	_, err = client.TableColumns(ctx, &v)
 	require.Nil(t, err, "%+v", err)
+
+	//v.SourceID = ClickHouseManager.SourceID
+	//v.TableName = "zz"
+	//_, err = client.TableColumns(ctx, &v)
+	//require.Nil(t, err, "%+v", err)
+
+	//v.SourceID = PGManager.SourceID
+	//v.TableName = "zz"
+	//_, err = client.TableColumns(ctx, &v)
+	//require.Nil(t, err, "%+v", err)
 }
 
 func Test_DeleteTable(t *testing.T) {
@@ -807,12 +595,7 @@ func Test_Clean(t *testing.T) {
 func Test_CreateTest(t *testing.T) {
 	mainInit(t)
 	Clean(t)
-	var err error
 
-	_, err = client.Create(ctx, &MysqlManager)
-	require.Nil(t, err, "%+v", err)
-	_, err = client.CreateTable(ctx, &MysqlSource)
-	require.Nil(t, err, "%+v", err)
-	_, err = client.CreateTable(ctx, &MysqlDest)
-	require.Nil(t, err, "%+v", err)
+	//	Test_CreateSource(t)
+	//	Test_CreateTable(t)
 }

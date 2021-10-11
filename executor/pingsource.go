@@ -14,10 +14,6 @@ import (
 	"github.com/DataWorkbench/common/qerror"
 	"github.com/DataWorkbench/gproto/pkg/model"
 	"github.com/Shopify/sarama"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/dutchcoders/goftp"
 	"github.com/samuel/go-zookeeper/zk"
@@ -68,7 +64,7 @@ func PingClickHouse(url *model.ClickHouseUrl) (err error) {
 		reqBody io.Reader
 	)
 
-	client = &http.Client{Timeout: time.Second * 10}
+	client = &http.Client{Timeout: time.Millisecond * 100}
 	reqBody = strings.NewReader("SELECT 1")
 	dsn := fmt.Sprintf(
 		"http://%s:%d/?user=%s&password=%s&database=%s",
@@ -108,6 +104,7 @@ func PingKafka(url *model.KafkaUrl) (err error) {
 	return
 }
 
+/*
 func PingS3(url *model.S3Url) (err error) {
 	sess, err1 := session.NewSession(&aws.Config{
 		Credentials: credentials.NewStaticCredentials(url.AccessKey, url.SecretKey, ""),
@@ -127,6 +124,7 @@ func PingS3(url *model.S3Url) (err error) {
 
 	return
 }
+*/
 
 func PingHbase(url *model.HbaseUrl) (err error) {
 	var (
@@ -134,7 +132,7 @@ func PingHbase(url *model.HbaseUrl) (err error) {
 	)
 
 	hosts := []string{url.Zookeeper}
-	conn, _, err = zk.Connect(hosts, time.Second*10)
+	conn, _, err = zk.Connect(hosts, time.Millisecond*100)
 	defer conn.Close()
 	return
 }
@@ -156,7 +154,7 @@ func PingHDFS(url *model.HDFSUrl) (err error) {
 	// https://studygolang.com/articles/766 -- use 50070 http port. but user input the IPC port.
 
 	for _, node := range url.GetNodes() {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", node.GetNameNode, node.GetPort()), 3*time.Second)
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", node.GetNameNode, node.GetPort()), time.Millisecond*100)
 		if err == nil && conn != nil {
 			conn.Close()
 			return nil
@@ -181,7 +179,9 @@ func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype stri
 	} else if sourcetype == constants.SourceTypeKafka {
 		err = PingKafka(url.GetKafka())
 	} else if sourcetype == constants.SourceTypeS3 {
-		err = PingS3(url.GetS3())
+		//err = PingS3(url.GetS3())
+		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
+		err = qerror.ConnectSourceFailed
 	} else if sourcetype == constants.SourceTypeClickHouse {
 		err = PingClickHouse(url.GetClickHouse())
 	} else if sourcetype == constants.SourceTypeHbase {
@@ -192,11 +192,11 @@ func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype stri
 		err = PingHDFS(url.GetHDFS())
 	} else {
 		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
-		err = qerror.ConnectSourceFailed
+		err = qerror.NotSupportSourceType.Format(sourcetype)
 	}
 	if err != nil {
 		ex.logger.Error().Error("connect source failed", err).Fire()
-		err = qerror.ConnectSourceFailed
+		err = qerror.ConnectSourceFailed.Format(err)
 	}
 
 	return

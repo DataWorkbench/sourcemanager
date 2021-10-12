@@ -116,7 +116,7 @@ func mainInit(t *testing.T) {
 	FtpManager = request.CreateSource{SourceID: "som-0000000000000ftp", SpaceID: spaceid, SourceType: constants.SourceTypeFtp, Name: "ftp",
 		Url: &model.SourceUrl{Ftp: &model.FtpUrl{Host: "42.193.101.183", Port: 21}}}
 	HDFSManager = request.CreateSource{SourceID: "som-000000000000hdfs", SpaceID: spaceid, SourceType: constants.SourceTypeHDFS, Name: "hdfs",
-		Url: &model.SourceUrl{HDFS: &model.HDFSUrl{Nodes: []*model.HDFSUrl_HDFSNodeUrl{&model.HDFSUrl_HDFSNodeUrl{NameNode: "127.0.0.1", Port: 8020}}}}}
+		Url: &model.SourceUrl{HDFS: &model.HDFSUrl{Nodes: &model.HDFSUrl_HDFSNodeUrl{NameNode: "127.0.0.1", Port: 8020}}}}
 
 	NewSpaceManager = request.CreateSource{SourceID: "som-00000000newspace", SpaceID: newspaceid, SourceType: constants.SourceTypeMysql, Name: "mysql", Comment: "newspace",
 		Url: &model.SourceUrl{MySQL: &model.MySQLUrl{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}

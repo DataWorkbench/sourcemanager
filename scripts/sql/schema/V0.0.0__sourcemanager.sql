@@ -24,7 +24,8 @@ create table sourcemanager(
 	url varchar(8000),
 	createtime BIGINT(20) UNSIGNED NOT NULL,
 	updatetime BIGINT(20) UNSIGNED NOT NULL,
-	state varchar(16)
+	state varchar(16),
+	connecte varchar(64)
 ) ENGINE=InnoDB;
 alter table sourcemanager add constraint sourcemanager_pkey primary key(sourceid);
 create unique index sourcemanager_unique ON  sourcemanager (spaceid, name);

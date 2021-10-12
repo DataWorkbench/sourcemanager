@@ -147,6 +147,11 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	info.State = constants.SourceEnableState
 	info.CreateTime = time.Now().Unix()
 	info.UpdateTime = info.CreateTime
+	if tmperr := ex.PingSource(ctx, info.SourceType, info.Url); tmperr != nil {
+		info.Connecte = constants.ConnecteFailed
+	} else {
+		info.Connecte = constants.ConnecteSuccess
+	}
 
 	if err = ex.checkSourceInfo(info.Url, info.SourceType); err != nil {
 		return
@@ -475,7 +480,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).Create(info).Error
+	err = db.Table(TableName).Select("tableid", "sourceid", "spaceid", "name", "comment", "define", "createtime", "updatetime", "tablekind").Create(info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source table", err).Fire()
 		err = qerror.Internal
@@ -484,6 +489,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 }
 
 func (ex *SourcemanagerExecutor) DescribeTable(ctx context.Context, tableID string) (info model.TableInfo, err error) {
+	var sourceInfo model.SourceInfo
 	db := ex.db.WithContext(ctx)
 
 	err = db.Table(TableName).Where("tableid = ? ", tableID).Scan(&info).Error
@@ -493,10 +499,12 @@ func (ex *SourcemanagerExecutor) DescribeTable(ctx context.Context, tableID stri
 	}
 
 	//check source disable state.
-	_, err = ex.Describe(ctx, info.SourceID, true)
+	sourceInfo, err = ex.Describe(ctx, info.SourceID, true)
 	if err != nil {
 		return
 	}
+	info.SourceName = sourceInfo.Name
+	info.Connecte = sourceInfo.Connecte
 	return
 }
 
@@ -608,30 +616,11 @@ func (ex *SourcemanagerExecutor) List(ctx context.Context, input *request.ListSo
 	}
 
 	db := ex.db.WithContext(ctx)
-	infos := []model.SourceInfo{}
 	err = db.Table(SourceTableName).Select("*").Clauses(clause.Where{Exprs: exprs}).
 		Limit(int(input.Limit)).Offset(int(input.Offset)).Order(order).
-		Scan(&infos).Error
+		Scan(&resp.Infos).Error
 	if err != nil {
 		return
-	}
-
-	resp.Infos = make([]*response.DescribeSource, len(infos))
-	for index := range infos {
-		var (
-			oneinfo   response.DescribeSource
-			onesource model.SourceInfo
-		)
-
-		onesource = infos[index]
-		oneinfo.Info = &onesource
-
-		if tmperr := ex.PingSource(ctx, infos[index].SourceType, infos[index].Url); tmperr != nil {
-			oneinfo.Connected = constants.SourceConnectedFailed
-		} else {
-			oneinfo.Connected = constants.SourceConnectedSuccess
-		}
-		resp.Infos[index] = &oneinfo
 	}
 
 	err = db.Table(SourceTableName).Select("count(*)").Clauses(clause.Where{Exprs: exprs}).Count(&resp.Total).Error
@@ -689,6 +678,13 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 		Scan(&resp.Infos).Error
 	if err != nil {
 		return
+	}
+
+	for index := range resp.Infos {
+		//don't check disable state
+		sourceInfo, _ := ex.Describe(ctx, resp.Infos[index].SourceID, false)
+		resp.Infos[index].SourceName = sourceInfo.Name
+		resp.Infos[index].Connecte = sourceInfo.Connecte
 	}
 
 	err = db.Table(TableName).Select("count(*)").Clauses(clause.Where{Exprs: exprs}).Count(&resp.Total).Error

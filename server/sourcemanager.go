@@ -35,12 +35,6 @@ func (s *SourceManagerServer) Describe(ctx context.Context, req *request.Describ
 	if err != nil {
 		return nil, err
 	}
-
-	if err = s.executor.PingSource(ctx, info.SourceType, info.Url); err != nil {
-		ret.Connected = constants.SourceConnectedFailed
-	} else {
-		ret.Connected = constants.SourceConnectedSuccess
-	}
 	ret.Info = &info
 
 	return &ret, nil

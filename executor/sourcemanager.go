@@ -13,6 +13,8 @@ import (
 	"github.com/DataWorkbench/common/qerror"
 	"github.com/DataWorkbench/common/utils/idgenerator"
 	"github.com/DataWorkbench/glog"
+	"github.com/DataWorkbench/gproto/pkg/datasourcepb"
+	"github.com/DataWorkbench/gproto/pkg/flinkpb"
 	"github.com/DataWorkbench/gproto/pkg/model"
 	"github.com/DataWorkbench/gproto/pkg/request"
 	"github.com/DataWorkbench/gproto/pkg/response"
@@ -21,17 +23,17 @@ import (
 )
 
 const (
-	SourceTableName      = "sourcemanager"
-	SourceUtileTableName = "sourceutile"
-	TableName            = "sourcetables"
+	SourceTableName      = "source_manager"
+	SourceUtileTableName = "source_utile"
+	TableName            = "source_tables"
 	MAXRows              = 100000000
 )
 
 type SourceUtileInfo struct {
-	EngineType string `gorm:"column:enginetype;"`
-	DataType   string `gorm:"column:datatype;"`
-	DataFormat string `gorm:"column:dataformat;"`
-	SourceKind string `gorm:"column:sourcekind;"`
+	EngineType string `gorm:"column:engine_type;"`
+	DataType   string `gorm:"column:data_type;"`
+	DataFormat string `gorm:"column:data_format;"`
+	SourceKind string `gorm:"column:source_kind;"`
 }
 
 type SourcemanagerExecutor struct {
@@ -51,51 +53,51 @@ func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecuto
 	return ex
 }
 
-func (ex *SourcemanagerExecutor) checkSourceInfo(url *model.SourceUrl, sourcetype string) (err error) {
-	if sourcetype == constants.SourceTypeMysql {
-		if err = url.GetMySQL().Validate(); err != nil {
+func (ex *SourcemanagerExecutor) checkSourceInfo(url *datasourcepb.DataSourceURL, sourcetype model.DataSource_Type) (err error) {
+	if sourcetype == model.DataSource_MySQL {
+		if err = url.GetMysql().Validate(); err != nil {
 			ex.logger.Error().Error("check source mysql url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypePostgreSQL {
-		if err = url.GetPostgreSQL().Validate(); err != nil {
+	} else if sourcetype == model.DataSource_PostgreSQL {
+		if err = url.GetPostgresql().Validate(); err != nil {
 			ex.logger.Error().Error("check source postgresql url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypeKafka {
+	} else if sourcetype == model.DataSource_Kafka {
 		if err = url.GetKafka().Validate(); err != nil {
 			ex.logger.Error().Error("check source kafka url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypeS3 {
+	} else if sourcetype == model.DataSource_S3 {
 		if err = url.GetS3().Validate(); err != nil {
 			ex.logger.Error().Error("check source s3 url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypeClickHouse {
-		if err = url.GetClickHouse().Validate(); err != nil {
+	} else if sourcetype == model.DataSource_ClickHouse {
+		if err = url.GetClickhouse().Validate(); err != nil {
 			ex.logger.Error().Error("check source clickhouse url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypeHbase {
+	} else if sourcetype == model.DataSource_HBase {
 		if err = url.GetHbase().Validate(); err != nil {
 			ex.logger.Error().Error("check source hbase url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypeFtp {
+	} else if sourcetype == model.DataSource_Ftp {
 		if err = url.GetFtp().Validate(); err != nil {
 			ex.logger.Error().Error("check source ftp url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypeHDFS {
-		if err = url.GetHDFS().Validate(); err != nil {
+	} else if sourcetype == model.DataSource_HDFS {
+		if err = url.GetHdfs().Validate(); err != nil {
 			ex.logger.Error().Error("check source clickhouse url", err).Fire()
 			err = qerror.InvalidJSON
 			return
@@ -119,7 +121,7 @@ func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, 
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(table).Select("spaceid").Where("spaceid = ? AND name = ?", spaceid, name).Take(&x).Error
+	err = db.Table(table).Select("space_id").Where("space_id = ? AND name = ?", spaceid, name).Take(&x).Error
 	if err == nil {
 		err = qerror.ResourceAlreadyExists
 		return
@@ -133,31 +135,31 @@ func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, 
 
 // SourceManager
 func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.CreateSource) (err error) {
-	var info model.SourceInfo
+	var info model.DataSource
 
-	info.SourceID = req.GetSourceID()
-	if info.SourceID == "" {
-		info.SourceID, _ = ex.idGenerator.Take()
+	info.SourceId = req.GetSourceId()
+	if info.SourceId == "" {
+		info.SourceId, _ = ex.idGenerator.Take()
 	}
-	info.SpaceID = req.GetSpaceID()
+	info.SpaceId = req.GetSpaceId()
 	info.SourceType = req.GetSourceType()
 	info.Name = req.GetName()
 	info.Comment = req.GetComment()
 	info.Url = req.GetUrl()
-	info.State = constants.SourceEnableState
-	info.CreateTime = time.Now().Unix()
-	info.UpdateTime = info.CreateTime
+	info.Status = model.DataSource_Enabled
+	info.Created = time.Now().Unix()
+	info.Updated = info.Created
 	if tmperr := ex.PingSource(ctx, info.SourceType, info.Url); tmperr != nil {
-		info.Connecte = constants.ConnecteFailed
+		info.Connection = model.DataSource_Failed
 	} else {
-		info.Connecte = constants.ConnecteSuccess
+		info.Connection = model.DataSource_Success
 	}
 
 	if err = ex.checkSourceInfo(info.Url, info.SourceType); err != nil {
 		return
 	}
 
-	if err = ex.CheckName(ctx, info.SpaceID, info.Name, SourceTableName); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName); err != nil {
 		return
 	}
 
@@ -172,14 +174,14 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 
 func (ex *SourcemanagerExecutor) CheckSourceState(ctx context.Context, sourceID string) (err error) {
 	descInfo, _ := ex.Describe(ctx, sourceID, false)
-	if descInfo.State == constants.SourceDisableState {
+	if descInfo.Status == model.DataSource_Disabled {
 		err = qerror.SourceIsDisable
 		return
 	}
 	return
 }
 
-func (ex *SourcemanagerExecutor) Describe(ctx context.Context, sourceID string, checkState bool) (info model.SourceInfo, err error) {
+func (ex *SourcemanagerExecutor) Describe(ctx context.Context, sourceID string, checkState bool) (info model.DataSource, err error) {
 	db := ex.db.WithContext(ctx)
 
 	if checkState == true {
@@ -188,7 +190,7 @@ func (ex *SourcemanagerExecutor) Describe(ctx context.Context, sourceID string, 
 		}
 	}
 
-	err = db.Table(SourceTableName).Where("sourceid = ? ", sourceID).Scan(&info).Error
+	err = db.Table(SourceTableName).Where("source_id = ? ", sourceID).Scan(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("describe source", err).Fire()
 		err = qerror.Internal
@@ -199,16 +201,16 @@ func (ex *SourcemanagerExecutor) Describe(ctx context.Context, sourceID string, 
 }
 
 func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.UpdateSource) (err error) {
-	var info model.SourceInfo
+	var info model.DataSource
 
-	info.SourceID = req.GetSourceID()
+	info.SourceId = req.GetSourceId()
 	info.SourceType = req.GetSourceType()
 	info.Name = req.GetName()
 	info.Comment = req.GetComment()
 	info.Url = req.GetUrl()
-	info.UpdateTime = time.Now().Unix()
+	info.Updated = time.Now().Unix()
 
-	if err = ex.CheckSourceState(ctx, info.SourceID); err != nil {
+	if err = ex.CheckSourceState(ctx, info.SourceId); err != nil {
 		return
 	}
 
@@ -216,9 +218,9 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 		return
 	}
 
-	descInfo, _ := ex.Describe(ctx, info.SourceID, false)
+	descInfo, _ := ex.Describe(ctx, info.SourceId, false)
 
-	if err = ex.CheckName(ctx, info.SpaceID, info.Name, SourceTableName); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName); err != nil {
 		if err == qerror.InvalidSourceName {
 			return
 		}
@@ -231,7 +233,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceTableName).Select("sourcetype", "name", "comment", "url", "updatetime").Where("sourceid = ? ", info.SourceID).Updates(info).Error
+	err = db.Table(SourceTableName).Select("source_type", "name", "comment", "url", "updated").Where("source_id = ? ", info.SourceId).Updates(info).Error
 	if err != nil {
 		ex.logger.Error().Error("update source", err).Fire()
 		err = qerror.Internal
@@ -239,7 +241,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 	return
 }
 
-func (ex *SourcemanagerExecutor) ChangeSourceState(ctx context.Context, sourceIDs []string, state string) (err error) {
+func (ex *SourcemanagerExecutor) ChangeSourceState(ctx context.Context, sourceIDs []string, state model.DataSource_Status) (err error) {
 	if len(sourceIDs) == 0 {
 		return
 	}
@@ -260,13 +262,13 @@ func (ex *SourcemanagerExecutor) ChangeSourceState(ctx context.Context, sourceID
 
 	eqExpr := make([]clause.Expression, len(sourceIDs))
 	for i := 0; i < len(sourceIDs); i++ {
-		eqExpr[i] = clause.Eq{Column: "sourceid", Value: sourceIDs[i]}
+		eqExpr[i] = clause.Eq{Column: "source_id", Value: sourceIDs[i]}
 	}
 	err = tx.Table(SourceTableName).Clauses(clause.Where{
 		Exprs: []clause.Expression{
 			clause.Or(eqExpr...),
 		},
-	}).Updates(map[string]interface{}{"state": state, "updatetime": time.Now().Unix()}).Error
+	}).Updates(map[string]interface{}{"status": state, "updated": time.Now().Unix()}).Error
 	if err != nil {
 		return
 	}
@@ -279,7 +281,7 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, sourceIDs []string,
 		var lt request.ListTable
 
 		lt.Limit = MAXRows
-		lt.SourceID = id
+		lt.SourceId = id
 
 		if checkState == true {
 			if err = ex.CheckSourceState(ctx, id); err != nil {
@@ -294,7 +296,7 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, sourceIDs []string,
 		}
 
 		db := ex.db.WithContext(ctx)
-		err = db.Table(SourceTableName).Where("sourceid = ? ", id).Delete("").Error
+		err = db.Table(SourceTableName).Where("source_id = ? ", id).Delete("").Error
 		if err != nil {
 			ex.logger.Error().Error("delete source", err).Fire()
 			err = qerror.Internal
@@ -310,7 +312,7 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, spaceIDs []strin
 
 	eqExpr := make([]clause.Expression, len(spaceIDs))
 	for i := 0; i < len(spaceIDs); i++ {
-		eqExpr[i] = clause.Eq{Column: "spaceid", Value: spaceIDs[i]}
+		eqExpr[i] = clause.Eq{Column: "space_id", Value: spaceIDs[i]}
 	}
 
 	db := ex.db.WithContext(ctx)
@@ -335,7 +337,7 @@ func (ex *SourcemanagerExecutor) SourceKind(ctx context.Context) (ret response.S
 	var x string
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceUtileTableName).Select("sourcekind").Where("enginetype = ?", "flink").Take(&x).Error
+	err = db.Table(SourceUtileTableName).Select("source_kind").Where("engine_type = ?", "flink").Take(&x).Error
 	if err != nil {
 		ex.logger.Error().Error("get source kind", err).Fire()
 		err = qerror.Internal
@@ -355,9 +357,9 @@ func (ex *SourcemanagerExecutor) DataFormat(ctx context.Context) (ret response.J
 	var x string
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceUtileTableName).Select("dataformat").Where("enginetype = ?", "flink").Take(&x).Error
+	err = db.Table(SourceUtileTableName).Select("data_format").Where("engine_type = ?", "flink").Take(&x).Error
 	if err != nil {
-		ex.logger.Error().Error("get dataformat", err).Fire()
+		ex.logger.Error().Error("get data_format", err).Fire()
 		err = qerror.Internal
 		return
 	}
@@ -374,7 +376,7 @@ func (ex *SourcemanagerExecutor) DataType(ctx context.Context) (ret response.Jso
 	var x string
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceUtileTableName).Select("datatype").Where("enginetype = ?", "flink").Take(&x).Error
+	err = db.Table(SourceUtileTableName).Select("data_type").Where("engine_type = ?", "flink").Take(&x).Error
 	if err != nil {
 		ex.logger.Error().Error("get datatype", err).Fire()
 		err = qerror.Internal
@@ -390,54 +392,54 @@ func (ex *SourcemanagerExecutor) DataType(ctx context.Context) (ret response.Jso
 	return
 }
 
-func (ex *SourcemanagerExecutor) checkSourcetablesUrl(ctx context.Context, url *model.TableDefine, sourceid string) (err error) {
+func (ex *SourcemanagerExecutor) checkSourcetablesUrl(ctx context.Context, url *flinkpb.TableSchema, sourceid string) (err error) {
 	descInfo, _ := ex.Describe(ctx, sourceid, false)
 
 	sourcetype := descInfo.SourceType
-	if sourcetype == constants.SourceTypeMysql {
-		if err = url.GetMySQL().Validate(); err != nil {
+	if sourcetype == model.DataSource_MySQL {
+		if err = url.GetMysql().Validate(); err != nil {
 			ex.logger.Error().Error("check source mysql define url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypePostgreSQL {
-		if err = url.GetPostgreSQL().Validate(); err != nil {
+	} else if sourcetype == model.DataSource_PostgreSQL {
+		if err = url.GetPostgresql().Validate(); err != nil {
 			ex.logger.Error().Error("check source postgres define url", err).Fire()
 			err = qerror.InvalidJSON
 			return
 		}
-	} else if sourcetype == constants.SourceTypeKafka {
+	} else if sourcetype == model.DataSource_Kafka {
 		if err = url.GetKafka().Validate(); err != nil {
 			ex.logger.Error().Error("check source kafka define url", err).Fire()
 			err = qerror.InvalidJSON
 			return err
 		}
-	} else if sourcetype == constants.SourceTypeS3 {
+	} else if sourcetype == model.DataSource_S3 {
 		if err = url.GetS3().Validate(); err != nil {
 			ex.logger.Error().Error("check source s3 define url", err).Fire()
 			err = qerror.InvalidJSON
 			return err
 		}
-	} else if sourcetype == constants.SourceTypeClickHouse {
-		if err = url.GetClickHouse().Validate(); err != nil {
+	} else if sourcetype == model.DataSource_ClickHouse {
+		if err = url.GetClickhouse().Validate(); err != nil {
 			ex.logger.Error().Error("check source clickhouse define url", err).Fire()
 			err = qerror.InvalidJSON
 			return err
 		}
-	} else if sourcetype == constants.SourceTypeHbase {
+	} else if sourcetype == model.DataSource_HBase {
 		if err = url.GetHbase().Validate(); err != nil {
 			ex.logger.Error().Error("check source hbase define url", err).Fire()
 			err = qerror.InvalidJSON
 			return err
 		}
-	} else if sourcetype == constants.SourceTypeFtp {
+	} else if sourcetype == model.DataSource_Ftp {
 		if err = url.GetFtp().Validate(); err != nil {
 			ex.logger.Error().Error("check source ftp define url", err).Fire()
 			err = qerror.InvalidJSON
 			return err
 		}
-	} else if sourcetype == constants.SourceTypeHDFS {
-		if err = url.GetHDFS().Validate(); err != nil {
+	} else if sourcetype == model.DataSource_HDFS {
+		if err = url.GetHdfs().Validate(); err != nil {
 			ex.logger.Error().Error("check source clickhouse define url", err).Fire()
 			err = qerror.InvalidJSON
 			return err
@@ -454,33 +456,33 @@ func (ex *SourcemanagerExecutor) checkSourcetablesUrl(ctx context.Context, url *
 func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.CreateTable) (err error) {
 	var info model.TableInfo
 
-	info.TableID = req.GetTableID()
-	if info.TableID == "" {
-		info.TableID, _ = ex.idGeneratorTable.Take()
+	info.TableId = req.GetTableId()
+	if info.TableId == "" {
+		info.TableId, _ = ex.idGeneratorTable.Take()
 	}
-	info.SourceID = req.GetSourceID()
-	info.SpaceID = req.GetSpaceID()
+	info.SourceId = req.GetSourceId()
+	info.SpaceId = req.GetSpaceId()
 	info.Name = req.GetName()
 	info.Comment = req.GetComment()
-	info.Define = req.GetDefine()
+	info.TableSchema = req.GetTableSchema()
 	info.TableKind = req.GetTableKind()
-	info.CreateTime = time.Now().Unix()
-	info.UpdateTime = info.CreateTime
+	info.Created = time.Now().Unix()
+	info.Updated = info.Created
 
-	if err = ex.CheckSourceState(ctx, info.SourceID); err != nil {
+	if err = ex.CheckSourceState(ctx, info.SourceId); err != nil {
 		return
 	}
 
-	if err = ex.checkSourcetablesUrl(ctx, info.Define, info.SourceID); err != nil {
+	if err = ex.checkSourcetablesUrl(ctx, info.TableSchema, info.SourceId); err != nil {
 		return
 	}
 
-	if err = ex.CheckName(ctx, info.SpaceID, info.Name, TableName); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, TableName); err != nil {
 		return
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).Select("tableid", "sourceid", "spaceid", "name", "comment", "define", "createtime", "updatetime", "tablekind").Create(info).Error
+	err = db.Table(TableName).Select("table_id", "source_id", "space_id", "name", "comment", "define", "created", "updated", "table_kind").Create(info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source table", err).Fire()
 		err = qerror.Internal
@@ -489,22 +491,22 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 }
 
 func (ex *SourcemanagerExecutor) DescribeTable(ctx context.Context, tableID string) (info model.TableInfo, err error) {
-	var sourceInfo model.SourceInfo
+	var sourceInfo model.DataSource
 	db := ex.db.WithContext(ctx)
 
-	err = db.Table(TableName).Where("tableid = ? ", tableID).Scan(&info).Error
+	err = db.Table(TableName).Where("table_id = ? ", tableID).Scan(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("describe source table", err).Fire()
 		err = qerror.Internal
 	}
 
 	//check source disable state.
-	sourceInfo, err = ex.Describe(ctx, info.SourceID, true)
+	sourceInfo, err = ex.Describe(ctx, info.SourceId, true)
 	if err != nil {
 		return
 	}
 	info.SourceName = sourceInfo.Name
-	info.Connecte = sourceInfo.Connecte
+	info.Connection = sourceInfo.Connection
 	return
 }
 
@@ -514,24 +516,24 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 		selfInfo model.TableInfo
 	)
 
-	info.TableID = req.GetTableID()
+	info.TableId = req.GetTableId()
 	info.Name = req.GetName()
 	info.Comment = req.GetComment()
-	info.Define = req.GetDefine()
+	info.TableSchema = req.GetTableSchema()
 	info.TableKind = req.GetTableKind()
-	info.UpdateTime = time.Now().Unix()
+	info.Updated = time.Now().Unix()
 
 	// DescribeTable will Check source State
-	selfInfo, err = ex.DescribeTable(ctx, info.TableID)
+	selfInfo, err = ex.DescribeTable(ctx, info.TableId)
 	if err != nil {
 		return
 	}
 
-	if err = ex.checkSourcetablesUrl(ctx, info.Define, selfInfo.SourceID); err != nil {
+	if err = ex.checkSourcetablesUrl(ctx, info.TableSchema, selfInfo.SourceId); err != nil {
 		return
 	}
 
-	if err = ex.CheckName(ctx, selfInfo.SpaceID, info.Name, TableName); err != nil {
+	if err = ex.CheckName(ctx, selfInfo.SpaceId, info.Name, TableName); err != nil {
 		if err == qerror.InvalidSourceName {
 			return
 		}
@@ -544,7 +546,7 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).Select("direction", "name", "comment", "url", "updatetime").Where("tableid = ? ", info.TableID).Updates(info).Error
+	err = db.Table(TableName).Select("table_kind", "name", "comment", "url", "updated").Where("table_id = ? ", info.TableId).Updates(info).Error
 	if err != nil {
 		ex.logger.Error().Error("update source table", err).Fire()
 		err = qerror.Internal
@@ -561,7 +563,7 @@ func (ex *SourcemanagerExecutor) DeleteTable(ctx context.Context, tableIDs []str
 		}
 
 		db := ex.db.WithContext(ctx)
-		err = db.Table(TableName).Where("tableid = ? ", id).Delete("").Error
+		err = db.Table(TableName).Where("table_id = ? ", id).Delete("").Error
 		if err != nil {
 			ex.logger.Error().Error("delete source table", err).Fire()
 			err = qerror.Internal
@@ -571,11 +573,11 @@ func (ex *SourcemanagerExecutor) DeleteTable(ctx context.Context, tableIDs []str
 }
 
 var validListSortBy = map[string]bool{
-	"sourceid":   true,
-	"tableid":    true,
-	"name":       true,
-	"createtime": true,
-	"updatetime": true,
+	"source_id": true,
+	"table_id":  true,
+	"name":      true,
+	"created":   true,
+	"updated":   true,
 }
 
 func checkList(SortBy string) error {
@@ -598,7 +600,7 @@ func (ex *SourcemanagerExecutor) List(ctx context.Context, input *request.ListSo
 
 	order := input.SortBy
 	if order == "" {
-		order = "updatetime"
+		order = "updated"
 	}
 	if input.Reverse {
 		order += " DESC"
@@ -607,7 +609,7 @@ func (ex *SourcemanagerExecutor) List(ctx context.Context, input *request.ListSo
 	}
 
 	// Build where exprs.
-	exprs := []clause.Expression{clause.Eq{Column: "spaceid", Value: input.SpaceID}}
+	exprs := []clause.Expression{clause.Eq{Column: "space_id", Value: input.SpaceId}}
 	if len(input.Search) > 0 {
 		exprs = append(exprs, clause.Like{
 			Column: "name",
@@ -637,7 +639,7 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 
 	order := input.SortBy
 	if order == "" {
-		order = "updatetime"
+		order = "updated"
 	}
 	if input.Reverse {
 		order += " DESC"
@@ -647,21 +649,21 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 
 	// Build where exprs.
 	exprs := []clause.Expression{}
-	if len(input.SpaceID) > 0 {
+	if len(input.SpaceId) > 0 {
 		exprs = append(exprs, clause.Eq{
-			Column: "spaceid",
-			Value:  input.SpaceID,
+			Column: "space_id",
+			Value:  input.SpaceId,
 		})
 	}
-	if len(input.SourceID) > 0 {
+	if len(input.SourceId) > 0 {
 		exprs = append(exprs, clause.Eq{
-			Column: "sourceid",
-			Value:  input.SourceID,
+			Column: "source_id",
+			Value:  input.SourceId,
 		})
 	}
-	if len(input.TableKind) > 0 {
+	if input.TableKind > model.TableInfo__ {
 		exprs = append(exprs, clause.Eq{
-			Column: "tablekind",
+			Column: "table_kind",
 			Value:  input.TableKind,
 		})
 	}
@@ -682,9 +684,9 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 
 	for index := range resp.Infos {
 		//don't check disable state
-		sourceInfo, _ := ex.Describe(ctx, resp.Infos[index].SourceID, false)
+		sourceInfo, _ := ex.Describe(ctx, resp.Infos[index].SourceId, false)
 		resp.Infos[index].SourceName = sourceInfo.Name
-		resp.Infos[index].Connecte = sourceInfo.Connecte
+		resp.Infos[index].Connection = sourceInfo.Connection
 	}
 
 	err = db.Table(TableName).Select("count(*)").Clauses(clause.Where{Exprs: exprs}).Count(&resp.Total).Error
@@ -695,16 +697,16 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 }
 
 func (ex *SourcemanagerExecutor) SourceTables(ctx context.Context, req *request.SourceTables) (resp response.JsonList, err error) {
-	sourceInfo, _ := ex.Describe(ctx, req.GetSourceID(), true)
+	sourceInfo, _ := ex.Describe(ctx, req.GetSourceId(), true)
 	if err != nil {
 		return
 	}
-	if sourceInfo.SourceType == constants.SourceTypePostgreSQL {
-		resp, err = GetPostgreSQLSourceTables(sourceInfo.GetUrl().GetPostgreSQL())
-	} else if sourceInfo.SourceType == constants.SourceTypeMysql {
-		resp, err = GetMysqlSourceTables(sourceInfo.GetUrl().GetMySQL())
-	} else if sourceInfo.SourceType == constants.SourceTypeClickHouse {
-		resp, err = GetClickHouseSourceTables(sourceInfo.GetUrl().GetClickHouse())
+	if sourceInfo.SourceType == model.DataSource_PostgreSQL {
+		resp, err = GetPostgreSQLSourceTables(sourceInfo.GetUrl().GetPostgresql())
+	} else if sourceInfo.SourceType == model.DataSource_MySQL {
+		resp, err = GetMysqlSourceTables(sourceInfo.GetUrl().GetMysql())
+	} else if sourceInfo.SourceType == model.DataSource_ClickHouse {
+		resp, err = GetClickHouseSourceTables(sourceInfo.GetUrl().GetClickhouse())
 	} else {
 		err = qerror.NotSupportSourceType.Format(sourceInfo.SourceType)
 	}
@@ -713,16 +715,16 @@ func (ex *SourcemanagerExecutor) SourceTables(ctx context.Context, req *request.
 }
 
 func (ex *SourcemanagerExecutor) TableColumns(ctx context.Context, req *request.TableColumns) (resp response.TableColumns, err error) {
-	sourceInfo, _ := ex.Describe(ctx, req.GetSourceID(), true)
+	sourceInfo, _ := ex.Describe(ctx, req.GetSourceId(), true)
 	if err != nil {
 		return
 	}
-	if sourceInfo.SourceType == constants.SourceTypePostgreSQL {
-		resp, err = GetPostgreSQLSourceTableColumns(sourceInfo.GetUrl().GetPostgreSQL(), req.GetTableName())
-	} else if sourceInfo.SourceType == constants.SourceTypeMysql {
-		resp, err = GetMysqlSourceTableColumns(sourceInfo.GetUrl().GetMySQL(), req.GetTableName())
-	} else if sourceInfo.SourceType == constants.SourceTypeClickHouse {
-		resp, err = GetClickHouseSourceTableColumns(sourceInfo.GetUrl().GetClickHouse(), req.GetTableName())
+	if sourceInfo.SourceType == model.DataSource_PostgreSQL {
+		resp, err = GetPostgreSQLSourceTableColumns(sourceInfo.GetUrl().GetPostgresql(), req.GetTableName())
+	} else if sourceInfo.SourceType == model.DataSource_MySQL {
+		resp, err = GetMysqlSourceTableColumns(sourceInfo.GetUrl().GetMysql(), req.GetTableName())
+	} else if sourceInfo.SourceType == model.DataSource_ClickHouse {
+		resp, err = GetClickHouseSourceTableColumns(sourceInfo.GetUrl().GetClickhouse(), req.GetTableName())
 	} else {
 		err = qerror.NotSupportSourceType.Format(sourceInfo.SourceType)
 	}

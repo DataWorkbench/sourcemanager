@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DataWorkbench/gproto/pkg/model"
+	"github.com/DataWorkbench/gproto/pkg/datasourcepb"
 	"github.com/DataWorkbench/gproto/pkg/response"
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"gorm.io/driver/mysql"
@@ -16,7 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetMysqlSourceTables(url *model.MySQLUrl) (resp response.JsonList, err error) {
+func GetMysqlSourceTables(url *datasourcepb.MySQLURL) (resp response.JsonList, err error) {
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		url.GetUser(), url.GetPassword(), url.GetHost(), url.GetPort(), url.GetDatabase(),
@@ -37,7 +37,7 @@ func GetMysqlSourceTables(url *model.MySQLUrl) (resp response.JsonList, err erro
 	return
 }
 
-func GetMysqlSourceTableColumns(url *model.MySQLUrl, tableName string) (resp response.TableColumns, err error) {
+func GetMysqlSourceTableColumns(url *datasourcepb.MySQLURL, tableName string) (resp response.TableColumns, err error) {
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		url.GetUser(), url.GetPassword(), url.GetHost(), url.GetPort(), url.GetDatabase(),
@@ -114,7 +114,7 @@ func GetMysqlSourceTableColumns(url *model.MySQLUrl, tableName string) (resp res
 	return
 }
 
-func GetPostgreSQLSourceTables(url *model.PostgreSQLUrl) (resp response.JsonList, err error) {
+func GetPostgreSQLSourceTables(url *datasourcepb.PostgreSQLURL) (resp response.JsonList, err error) {
 	dsn := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%d  dbname=%s ",
 		url.GetUser(), url.GetPassword(), url.GetHost(), url.GetPort(), url.GetDatabase(),
@@ -145,7 +145,7 @@ func getTypeLength(in string) (tp string, l string) {
 	return
 }
 
-func GetPostgreSQLSourceTableColumns(url *model.PostgreSQLUrl, tableName string) (resp response.TableColumns, err error) {
+func GetPostgreSQLSourceTableColumns(url *datasourcepb.PostgreSQLURL, tableName string) (resp response.TableColumns, err error) {
 	dsn := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%d  dbname=%s ",
 		url.GetUser(), url.GetPassword(), url.GetHost(), url.GetPort(), url.GetDatabase(),
@@ -220,7 +220,7 @@ func GetPostgreSQLSourceTableColumns(url *model.PostgreSQLUrl, tableName string)
 	return
 }
 
-func GetClickHouseSourceTables(url *model.ClickHouseUrl) (resp response.JsonList, err error) {
+func GetClickHouseSourceTables(url *datasourcepb.ClickHouseURL) (resp response.JsonList, err error) {
 	var (
 		client  *http.Client
 		req     *http.Request
@@ -262,7 +262,7 @@ func GetClickHouseSourceTables(url *model.ClickHouseUrl) (resp response.JsonList
 	return
 }
 
-func GetClickHouseSourceTableColumns(url *model.ClickHouseUrl, tableName string) (resp response.TableColumns, err error) {
+func GetClickHouseSourceTableColumns(url *datasourcepb.ClickHouseURL, tableName string) (resp response.TableColumns, err error) {
 	var (
 		client  *http.Client
 		req     *http.Request
@@ -332,7 +332,7 @@ func GetClickHouseSourceTableColumns(url *model.ClickHouseUrl, tableName string)
 		column.Name = Name
 		column.Type = Type
 		column.Length = Length
-		column.IsPrkey = IsPrkey
+		column.IsPrimaryKey = IsPrkey
 
 		resp.Columns = append(resp.Columns, &column)
 	}

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/common/qerror"
+	"github.com/DataWorkbench/gproto/pkg/datasourcepb"
 	"github.com/DataWorkbench/gproto/pkg/model"
 	"github.com/Shopify/sarama"
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -22,7 +22,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func PingMysql(url *model.MySQLUrl) (err error) {
+func PingMysql(url *datasourcepb.MySQLURL) (err error) {
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		url.User, url.Password, url.Host, url.Port, url.Database,
@@ -39,7 +39,7 @@ func PingMysql(url *model.MySQLUrl) (err error) {
 	return
 }
 
-func PingPostgreSQL(url *model.PostgreSQLUrl) (err error) {
+func PingPostgreSQL(url *datasourcepb.PostgreSQLURL) (err error) {
 	dsn := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%d  dbname=%s ",
 		url.User, url.Password, url.Host, url.Port, url.Database,
@@ -56,7 +56,7 @@ func PingPostgreSQL(url *model.PostgreSQLUrl) (err error) {
 	return
 }
 
-func PingClickHouse(url *model.ClickHouseUrl) (err error) {
+func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
 	var (
 		client  *http.Client
 		req     *http.Request
@@ -92,7 +92,7 @@ func PingClickHouse(url *model.ClickHouseUrl) (err error) {
 	return
 }
 
-func PingKafka(url *model.KafkaUrl) (err error) {
+func PingKafka(url *datasourcepb.KafkaURL) (err error) {
 	dsn := fmt.Sprintf("%s", url.KafkaBrokers)
 
 	consumer, terr := sarama.NewConsumer([]string{dsn}, nil)
@@ -126,7 +126,7 @@ func PingS3(url *model.S3Url) (err error) {
 }
 */
 
-func PingHbase(url *model.HbaseUrl) (err error) {
+func PingHBase(url *datasourcepb.HBaseURL) (err error) {
 	var (
 		conn *zk.Conn
 	)
@@ -137,7 +137,7 @@ func PingHbase(url *model.HbaseUrl) (err error) {
 	return
 }
 
-func PingFtp(url *model.FtpUrl) (err error) {
+func PingFtp(url *datasourcepb.FtpURL) (err error) {
 	var (
 		conn *goftp.FTP
 	)
@@ -149,7 +149,7 @@ func PingFtp(url *model.FtpUrl) (err error) {
 	return
 }
 
-func PingHDFS(url *model.HDFSUrl) (err error) {
+func PingHDFS(url *datasourcepb.HDFSURL) (err error) {
 	// https://github.com/colinmarc/hdfs -- install the hadoop client. so don't use it.
 	// https://studygolang.com/articles/766 -- use 50070 http port. but user input the IPC port.
 
@@ -165,31 +165,31 @@ func PingHDFS(url *model.HDFSUrl) (err error) {
 	return
 }
 
-func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype string, url *model.SourceUrl) (err error) {
+func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype model.DataSource_Type, url *datasourcepb.DataSourceURL) (err error) {
 	if err = ex.checkSourceInfo(url, sourcetype); err != nil {
 		return
 	}
 
-	if sourcetype == constants.SourceTypeMysql {
-		err = PingMysql(url.GetMySQL())
-	} else if sourcetype == constants.SourceTypePostgreSQL {
-		err = PingPostgreSQL(url.GetPostgreSQL())
-	} else if sourcetype == constants.SourceTypeKafka {
+	if sourcetype == model.DataSource_MySQL {
+		err = PingMysql(url.GetMysql())
+	} else if sourcetype == model.DataSource_PostgreSQL {
+		err = PingPostgreSQL(url.GetPostgresql())
+	} else if sourcetype == model.DataSource_Kafka {
 		err = PingKafka(url.GetKafka())
-	} else if sourcetype == constants.SourceTypeS3 {
+	} else if sourcetype == model.DataSource_S3 {
 		//err = PingS3(url.GetS3())
-		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
+		ex.logger.Error().String("don't support this source type ", sourcetype.String()).Fire()
 		err = qerror.ConnectSourceFailed
-	} else if sourcetype == constants.SourceTypeClickHouse {
-		err = PingClickHouse(url.GetClickHouse())
-	} else if sourcetype == constants.SourceTypeHbase {
-		err = PingHbase(url.GetHbase())
-	} else if sourcetype == constants.SourceTypeFtp {
+	} else if sourcetype == model.DataSource_ClickHouse {
+		err = PingClickHouse(url.GetClickhouse())
+	} else if sourcetype == model.DataSource_HBase {
+		err = PingHBase(url.GetHbase())
+	} else if sourcetype == model.DataSource_Ftp {
 		err = PingFtp(url.GetFtp())
-	} else if sourcetype == constants.SourceTypeHDFS {
-		err = PingHDFS(url.GetHDFS())
+	} else if sourcetype == model.DataSource_HDFS {
+		err = PingHDFS(url.GetHdfs())
 	} else {
-		ex.logger.Error().String("don't support this source type ", sourcetype).Fire()
+		ex.logger.Error().String("don't support this source type ", sourcetype.String()).Fire()
 		err = qerror.NotSupportSourceType.Format(sourcetype)
 	}
 	if err != nil {

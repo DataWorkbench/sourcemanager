@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 
-	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/gproto/pkg/model"
 	"github.com/DataWorkbench/gproto/pkg/request"
 	"github.com/DataWorkbench/gproto/pkg/response"
@@ -31,7 +30,7 @@ func (s *SourceManagerServer) Create(ctx context.Context, req *request.CreateSou
 func (s *SourceManagerServer) Describe(ctx context.Context, req *request.DescribeSource) (*response.DescribeSource, error) {
 	var ret response.DescribeSource
 
-	info, err := s.executor.Describe(ctx, req.GetSourceID(), true)
+	info, err := s.executor.Describe(ctx, req.GetSourceId(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -51,12 +50,12 @@ func (s *SourceManagerServer) PingSource(ctx context.Context, req *request.PingS
 }
 
 func (s *SourceManagerServer) Enable(ctx context.Context, req *request.EnableSource) (*model.EmptyStruct, error) {
-	err := s.executor.ChangeSourceState(ctx, req.GetSourceIDs(), constants.SourceEnableState)
+	err := s.executor.ChangeSourceState(ctx, req.GetSourceIds(), model.DataSource_Enabled)
 	return &model.EmptyStruct{}, err
 }
 
 func (s *SourceManagerServer) Disable(ctx context.Context, req *request.DisableSource) (*model.EmptyStruct, error) {
-	err := s.executor.ChangeSourceState(ctx, req.GetSourceIDs(), constants.SourceDisableState)
+	err := s.executor.ChangeSourceState(ctx, req.GetSourceIds(), model.DataSource_Disabled)
 	return &model.EmptyStruct{}, err
 }
 
@@ -95,7 +94,7 @@ func (s *SourceManagerServer) CreateTable(ctx context.Context, req *request.Crea
 func (s *SourceManagerServer) DescribeTable(ctx context.Context, req *request.DescribeTable) (*response.DescribeTable, error) {
 	var ret response.DescribeTable
 
-	info, err := s.executor.DescribeTable(ctx, req.GetTableID())
+	info, err := s.executor.DescribeTable(ctx, req.GetTableId())
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +109,7 @@ func (s *SourceManagerServer) UpdateTable(ctx context.Context, req *request.Upda
 }
 
 func (s *SourceManagerServer) DeleteTable(ctx context.Context, req *request.DeleteTable) (*model.EmptyStruct, error) {
-	err := s.executor.DeleteTable(ctx, req.GetTableIDs())
+	err := s.executor.DeleteTable(ctx, req.GetTableIds())
 	return &model.EmptyStruct{}, err
 }
 
@@ -133,7 +132,7 @@ func (s *SourceManagerServer) ListTable(ctx context.Context, req *request.ListTa
 }
 
 func (s *SourceManagerServer) Delete(ctx context.Context, req *request.DeleteSource) (*model.EmptyStruct, error) {
-	err := s.executor.Delete(ctx, req.GetSourceIDs(), true)
+	err := s.executor.Delete(ctx, req.GetSourceIds(), true)
 	return &model.EmptyStruct{}, err
 }
 

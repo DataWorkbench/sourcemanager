@@ -10,7 +10,7 @@ create table source_utile(
 ) ENGINE=InnoDB;
 alter table source_utile add constraint source_utile_pkey primary key(engine_type);
 
-insert into source_utile(engine_type, data_type, data_format) values('flink', '{"jsonlist": ["STRING", "BOOLEAN", "BYTES", "DECIMAL", "TINYINT", "SMALLINT", "INTEGER", "BIGINT", "FLOAT", "DOUBLE", "DATE", "TIME", "TIMESTAMP", "TIMESTAMP WITH LOCAL TIME ZONE", "INTERVAL", "ARRAY", "MULTISET", "MAP", "ROW", "RAW"]}', '{"jsonlist": ["csv", "json", "avro", "debezium-json", "canal-json", "parquet", "orc"]}');
+insert into source_utile(engine_type, data_type, data_format) values('flink', '{"json_list": ["STRING", "BOOLEAN", "BYTES", "DECIMAL", "TINYINT", "SMALLINT", "INTEGER", "BIGINT", "FLOAT", "DOUBLE", "DATE", "TIME", "TIMESTAMP", "TIMESTAMP WITH LOCAL TIME ZONE", "INTERVAL", "ARRAY", "MULTISET", "MAP", "ROW", "RAW"]}', '{"json_list": ["csv", "json", "avro", "debezium-json", "canal-json", "parquet", "orc"]}');
 update source_utile set source_kind = '{"kinds": [{"name":"MySQL"}, {"name": "PostgreSQL"}, {"name":"S3"}, {"name":"ClickHouse"} ,{"name":"Hbase"} ,{"name":"Kafka"} ,{"name":"Ftp"}, {"name":"HDFS"}]}' where engine_type='flink';
 
 

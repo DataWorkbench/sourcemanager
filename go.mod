@@ -3,9 +3,9 @@ module github.com/DataWorkbench/sourcemanager
 go 1.15
 
 require (
-	github.com/DataWorkbench/common v0.0.0-20211019090738-8819b7f7efc0
+	github.com/DataWorkbench/common v0.0.0-20211026131034-93ed3da683b7
 	github.com/DataWorkbench/glog v0.0.0-20210809050640-4960fd6de6ab
-	github.com/DataWorkbench/gproto v0.0.0-20211019090841-43db60d7a293
+	github.com/DataWorkbench/gproto v0.0.0-20211026131108-90094fa93895
 	github.com/DataWorkbench/loader v0.0.0-20210808061751-6e1ba7df5cdd
 	github.com/Shopify/sarama v1.29.1
 	github.com/aws/aws-sdk-go v1.27.0

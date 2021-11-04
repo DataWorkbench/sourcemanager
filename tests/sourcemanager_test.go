@@ -87,20 +87,20 @@ func mainInit(t *testing.T) {
 	// Mysql
 	// https://segmentfault.com/a/1190000039048901
 	MysqlManager = request.CreateSource{SourceId: "som-00000000000mysql", SpaceId: spaceid, SourceType: model.DataSource_MySQL, Name: "mysql", Comment: "",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
 	MysqlSource = request.CreateTable{TableId: "sot-00000mysqlsource", SourceId: MysqlManager.SourceId, SpaceId: spaceid, Name: "ms", Comment: "mysql", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Mysql: &flinkpb.MySQLTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 	MysqlDest = request.CreateTable{TableId: "sot-0000000mysqldest", SourceId: MysqlManager.SourceId, SpaceId: spaceid, Name: "md", Comment: "mysql dest", TableKind: model.TableInfo_Destination, TableSchema: &flinkpb.TableSchema{Mysql: &flinkpb.MySQLTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 
 	// ClickHouse
 	// create table cks(paycount bigint, paymoney varchar(10)) ENGINE=TinyLog;
 	// create table zz(id bigint, id1 bigint, t timestamp, v varchar(10), primary key (id)) engine=MergeTree;
-	ClickHouseManager = request.CreateSource{SourceId: "som-000000clickhouse", SpaceId: spaceid, SourceType: model.DataSource_ClickHouse, Name: "clickhouse", Comment: "clickhouse", Url: &datasourcepb.DataSourceURL{Clickhouse: &datasourcepb.ClickHouseURL{User: "default", Password: "", Host: "127.0.0.1", Port: 8123, Database: "default"}}}
+	ClickHouseManager = request.CreateSource{SourceId: "som-000000clickhouse", SpaceId: spaceid, SourceType: model.DataSource_ClickHouse, Name: "clickhouse", Comment: "clickhouse", Url: &datasourcepb.DataSourceURL{Clickhouse: &datasourcepb.ClickHouseURL{User: "default", Password: "", Host: "dataworkbench-db", Port: 8123, Database: "default"}}}
 	ClickHouseSource = request.CreateTable{TableId: "sot-clickhousesource", SourceId: ClickHouseManager.SourceId, SpaceId: spaceid, Name: "cks", Comment: "cksource", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Clickhouse: &flinkpb.ClickHouseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "paymoney", Type: "varchar", Length: "10", Comment: "xxx", PrimaryKey: "f"}}}}}
 	ClickHouseDest = request.CreateTable{TableId: "sot-00clickhousedest", SourceId: ClickHouseManager.SourceId, SpaceId: spaceid, Name: "ckd", Comment: "ckdest", TableKind: model.TableInfo_Destination, TableSchema: &flinkpb.TableSchema{Clickhouse: &flinkpb.ClickHouseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "paymoney", Type: "varchar", Length: "10", Comment: "xxx", PrimaryKey: "f"}}}}}
 
 	// PostgreSQL
 	PGManager = request.CreateSource{SourceId: "som-000000postgresql", SpaceId: spaceid, SourceType: model.DataSource_PostgreSQL, Name: "pg", Comment: "",
-		Url: &datasourcepb.DataSourceURL{Postgresql: &datasourcepb.PostgreSQLURL{User: "lzzhang", Password: "lzzhang", Host: "127.0.0.1", Database: "lzzhang", Port: 5432}}}
+		Url: &datasourcepb.DataSourceURL{Postgresql: &datasourcepb.PostgreSQLURL{User: "lzzhang", Password: "lzzhang", Host: "dataworkbench-db", Database: "lzzhang", Port: 5432}}}
 	//PGSource = request.CreateTable{TableId: "sot-postgresqlsource", SourceId: PGManager.SourceId, SpaceId: spaceid, Name: "pgs", Comment: "pgs", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{MySQL: &model.MySQLTableDefine{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 	//PGDest = request.CreateTable{TableId: "sot-00postgresqldest", SourceId: PGManager.SourceId, SpaceId: spaceid, Name: "pgd", Comment: "pgd", TableKind: model.TableInfo_Destination, TableSchema: &flinkpb.TableSchema{MySQL: &model.MySQLTableDefine{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 
@@ -117,16 +117,16 @@ func mainInit(t *testing.T) {
 	FtpManager = request.CreateSource{SourceId: "som-0000000000000ftp", SpaceId: spaceid, SourceType: model.DataSource_Ftp, Name: "ftp",
 		Url: &datasourcepb.DataSourceURL{Ftp: &datasourcepb.FtpURL{Host: "42.193.101.183", Port: 21}}}
 	HDFSManager = request.CreateSource{SourceId: "som-000000000000hdfs", SpaceId: spaceid, SourceType: model.DataSource_HDFS, Name: "hdfs",
-		Url: &datasourcepb.DataSourceURL{Hdfs: &datasourcepb.HDFSURL{Nodes: &datasourcepb.HDFSURL_HDFSNodeURL{NameNode: "127.0.0.1", Port: 8020}}}}
+		Url: &datasourcepb.DataSourceURL{Hdfs: &datasourcepb.HDFSURL{Nodes: &datasourcepb.HDFSURL_HDFSNodeURL{NameNode: "dataworkbench-db", Port: 8020}}}}
 
 	NewSpaceManager = request.CreateSource{SourceId: "som-00000000newspace", SpaceId: newspaceid, SourceType: model.DataSource_MySQL, Name: "mysql", Comment: "newspace",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
 	NameExistsManager = request.CreateSource{SourceId: "som-000000nameexists", SpaceId: spaceid, SourceType: model.DataSource_MySQL, Name: "mysql",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
 	NameErrorManager = request.CreateSource{SourceId: "som-000000nameerror", SpaceId: spaceid, SourceType: model.DataSource_MySQL, Name: "mysql.mysql",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
 	SourceTypeErrorManager = request.CreateSource{SourceId: "som-0sourcetypeerror", SpaceId: spaceid, SourceType: 10000, Name: "SourceTypeError",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "127.0.0.1", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
 
 	//// Source Tables
 	//TablePG = request.CreateTable{ID: "sot-0123456789012345", SourceId: PGManager.ID, Name: "pd", Comment: "postgresql", Url: typeToJsonString(constants.FlinkTableDefinePostgreSQL{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "id", Type: "bigint", PrimaryKey: "t"}, constants.SqlColumnType{Name: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}})}

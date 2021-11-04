@@ -482,7 +482,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).Select("table_id", "source_id", "space_id", "name", "comment", "define", "created", "updated", "table_kind").Create(info).Error
+	err = db.Table(TableName).Select("table_id", "source_id", "space_id", "name", "comment", "table_schema", "created", "updated", "table_kind").Create(info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source table", err).Fire()
 		err = qerror.Internal

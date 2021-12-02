@@ -231,9 +231,14 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 		// it is self.
 		err = nil
 	}
+	if tmperr := ex.PingSource(ctx, info.SourceType, info.Url); tmperr != nil {
+		info.Connection = model.DataSource_Failed
+	} else {
+		info.Connection = model.DataSource_Success
+	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceTableName).Select("source_type", "name", "comment", "url", "updated").Where("source_id = ? ", info.SourceId).Updates(info).Error
+	err = db.Table(SourceTableName).Select("source_type", "name", "comment", "url", "updated", "connection").Where("source_id = ? ", info.SourceId).Updates(info).Error
 	if err != nil {
 		ex.logger.Error().Error("update source", err).Fire()
 		err = qerror.Internal

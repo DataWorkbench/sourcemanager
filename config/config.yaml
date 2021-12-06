@@ -27,3 +27,8 @@ mysql:
 tracer:
   service_name: "sourcemanager"
   local_agent: "127.0.0.1:6831"
+
+enginemanager_server:
+  address: "127.0.0.1:9114"
+  log_level: 2
+  log_verbosity: 99

@@ -41,16 +41,46 @@ type SourcemanagerExecutor struct {
 	idGenerator      *idgenerator.IDGenerator
 	idGeneratorTable *idgenerator.IDGenerator
 	logger           *glog.Logger
+	engineClient     EngineClient
 }
 
-func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger) *SourcemanagerExecutor {
+func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger, eClient EngineClient) *SourcemanagerExecutor {
 	ex := &SourcemanagerExecutor{
 		db:               db,
 		idGenerator:      idgenerator.New(constants.SourceManagerIDPrefix),
 		idGeneratorTable: idgenerator.New(constants.SourceTablesIDPrefix),
 		logger:           l,
+		engineClient:     eClient,
 	}
 	return ex
+}
+
+func (ex *SourcemanagerExecutor) GetSourceNetwork(url *datasourcepb.DataSourceURL, sourcetype model.DataSource_Type) (network *datasourcepb.DatasourceNetwork, err error) {
+	if sourcetype == model.DataSource_MySQL {
+		network = url.GetMysql().GetNetwork()
+	} else if sourcetype == model.DataSource_PostgreSQL {
+		network = url.GetPostgresql().GetNetwork()
+	} else if sourcetype == model.DataSource_Kafka {
+		network = url.GetKafka().GetNetwork()
+	} else if sourcetype == model.DataSource_S3 {
+		//network = url.GetS3().GetNetwork()
+		ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
+		err = qerror.NotSupportSourceType.Format(sourcetype)
+	} else if sourcetype == model.DataSource_ClickHouse {
+		network = url.GetClickhouse().GetNetwork()
+	} else if sourcetype == model.DataSource_HBase {
+		network = url.GetHbase().GetNetwork()
+	} else if sourcetype == model.DataSource_Ftp {
+		network = url.GetFtp().GetNetwork()
+	} else if sourcetype == model.DataSource_HDFS {
+		network = url.GetHdfs().GetNetwork()
+	} else {
+		ex.logger.Error().Error("not support source type", fmt.Errorf("unknow source type %s", sourcetype)).Fire()
+		err = qerror.NotSupportSourceType.Format(sourcetype)
+		return
+	}
+
+	return
 }
 
 func (ex *SourcemanagerExecutor) checkSourceInfo(url *datasourcepb.DataSourceURL, sourcetype model.DataSource_Type) (err error) {
@@ -164,7 +194,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceTableName).Create(info).Error
+	err = db.Table(SourceTableName).Select("source_id", "space_id", "source_type", "name", "comment", "url", "created", "updated", "status", "connection").Create(info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source", err).Fire()
 		err = qerror.Internal
@@ -195,6 +225,15 @@ func (ex *SourcemanagerExecutor) Describe(ctx context.Context, sourceID string, 
 		ex.logger.Error().Error("describe source", err).Fire()
 		err = qerror.Internal
 		return
+	}
+
+	if info.SourceType != model.DataSource_S3 {
+		network, _ := ex.GetSourceNetwork(info.Url, info.SourceType)
+		if network.GetType() == datasourcepb.DatasourceNetwork_Vpc {
+			var resp *response.DescribeNetwork
+			resp, err = ex.engineClient.client.DescribeNetwork(ctx, &request.DescribeNetwork{NetworkId: network.GetVpcNetwork().GetNetworkId()})
+			info.NetworkName = resp.Info.GetName()
+		}
 	}
 
 	return
@@ -628,6 +667,17 @@ func (ex *SourcemanagerExecutor) List(ctx context.Context, input *request.ListSo
 		Scan(&resp.Infos).Error
 	if err != nil {
 		return
+	}
+
+	for index := range resp.Infos {
+		if resp.Infos[index].SourceType != model.DataSource_S3 {
+			network, _ := ex.GetSourceNetwork(resp.Infos[index].Url, resp.Infos[index].SourceType)
+			if network.GetType() == datasourcepb.DatasourceNetwork_Vpc {
+				var resp_network *response.DescribeNetwork
+				resp_network, err = ex.engineClient.client.DescribeNetwork(ctx, &request.DescribeNetwork{NetworkId: network.GetVpcNetwork().GetNetworkId()})
+				resp.Infos[index].NetworkName = resp_network.Info.GetName()
+			}
+		}
 	}
 
 	err = db.Table(SourceTableName).Select("count(*)").Clauses(clause.Where{Exprs: exprs}).Count(&resp.Total).Error

@@ -44,11 +44,13 @@ func Start() (err error) {
 	ctx := glog.WithContext(context.Background(), lp)
 
 	var (
-		db           *gorm.DB
-		rpcServer    *grpcwrap.Server
-		metricServer *metrics.Server
-		tracer       gtrace.Tracer
-		tracerCloser io.Closer
+		db                *gorm.DB
+		rpcServer         *grpcwrap.Server
+		metricServer      *metrics.Server
+		tracer            gtrace.Tracer
+		tracerCloser      io.Closer
+		engineManagerConn *grpcwrap.ClientConn
+		engineClient      executor.EngineClient
 	)
 
 	defer func() {
@@ -72,13 +74,23 @@ func Start() (err error) {
 		return
 	}
 
+	engineManagerConn, err = grpcwrap.NewConn(ctx, cfg.EnginemanagerServer, grpcwrap.ClientWithTracer(tracer))
+	if err != nil {
+		return
+	}
+
+	engineClient, err = executor.NewEngineClient(engineManagerConn)
+	if err != nil {
+		return
+	}
+
 	// init grpc.Server
 	rpcServer, err = grpcwrap.NewServer(ctx, cfg.GRPCServer)
 	if err != nil {
 		return
 	}
 	rpcServer.Register(func(s *grpc.Server) {
-		smpb.RegisterSourcemanagerServer(s, NewSourceManagerServer(executor.NewSourceManagerExecutor(db, lp)))
+		smpb.RegisterSourcemanagerServer(s, NewSourceManagerServer(executor.NewSourceManagerExecutor(db, lp, engineClient)))
 	})
 
 	// handle signal

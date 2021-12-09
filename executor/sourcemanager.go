@@ -327,11 +327,13 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, sourceIDs []string,
 		lt.Limit = MAXRows
 		lt.SourceId = id
 
+		/* if status is disable. allow delete the source.
 		if checkState == true {
 			if err = ex.CheckSourceState(ctx, id); err != nil {
 				return
 			}
 		}
+		*/
 
 		resp, _ := ex.ListTable(ctx, &lt)
 		if resp.Total > 0 {

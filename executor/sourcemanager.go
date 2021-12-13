@@ -179,6 +179,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	info.Status = model.DataSource_Enabled
 	info.Created = time.Now().Unix()
 	info.Updated = info.Created
+	info.CreateBy = req.CreateBy
 	if tmperr := ex.PingSource(ctx, info.SourceType, info.Url); tmperr != nil {
 		info.Connection = model.DataSource_Failed
 	} else {
@@ -194,7 +195,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceTableName).Select("source_id", "space_id", "source_type", "name", "comment", "url", "created", "updated", "status", "connection").Create(&info).Error
+	err = db.Table(SourceTableName).Select("source_id", "space_id", "source_type", "name", "comment", "url", "created", "updated", "status", "create_by", "connection").Create(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source", err).Fire()
 		err = qerror.Internal
@@ -569,6 +570,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	info.TableKind = req.GetTableKind()
 	info.Created = time.Now().Unix()
 	info.Updated = info.Created
+	info.CreateBy = req.CreateBy
 	info.Status = model.TableInfo_Enabled
 
 	if err = ex.CheckSourceState(ctx, info.SourceId); err != nil {
@@ -584,7 +586,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).Select("table_id", "source_id", "space_id", "name", "comment", "table_schema", "created", "updated", "table_kind", "status").Create(&info).Error
+	err = db.Table(TableName).Select("table_id", "source_id", "space_id", "name", "comment", "table_schema", "created", "updated", "table_kind", "status", "create_by").Create(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source table", err).Fire()
 		err = qerror.Internal

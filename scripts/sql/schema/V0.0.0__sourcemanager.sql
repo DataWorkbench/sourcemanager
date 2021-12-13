@@ -24,7 +24,9 @@ create table source_manager(
 	url varchar(8000),
 	created BIGINT(20) UNSIGNED NOT NULL,
 	updated BIGINT(20) UNSIGNED NOT NULL,
+	deleted BIGINT(20) DEFAULT 0 NOT NULL,
 	status int,
+	create_by varchar(64),
 	connection int
 ) ENGINE=InnoDB;
 alter table source_manager add constraint source_manager_pkey primary key(source_id);
@@ -43,6 +45,9 @@ create table source_tables(
 	table_schema varchar(8000),
 	created BIGINT(20) UNSIGNED NOT NULL,
 	updated BIGINT(20) UNSIGNED NOT NULL,
+	deleted BIGINT(20) UNSIGNED NOT NULL,
+	status int,
+	create_by varchar(64),
 	table_kind int,
 	foreign key(source_id) references source_manager(source_id)
 ) ENGINE=InnoDB;

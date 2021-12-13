@@ -3,7 +3,6 @@ package executor
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -150,16 +149,22 @@ func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, 
 		return
 	}
 
-	db := ex.db.WithContext(ctx)
-	err = db.Table(table).Select("space_id").Where("space_id = ? AND name = ?", spaceid, name).Take(&x).Error
-	if err == nil {
+	//db := ex.db.WithContext(ctx)
+	//err = db.Table(table).Select("space_id").Where("space_id = ? AND name = ? AND status != ?", spaceid, name,model.TableInfo_Deleted).Take(&x).Error
+	//if err == nil {
+	//	err = qerror.ResourceAlreadyExists
+	//	return
+	//} else if errors.Is(err, gorm.ErrRecordNotFound) {
+	//	err = nil
+	//	return
+	//}
+
+	if re := ex.db.WithContext(ctx).Table(table).Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("space_id = ? AND name = ? and status != ?", spaceid, name, model.TableInfo_Deleted).
+		Take(&x).RowsAffected; re > 0 {
 		err = qerror.ResourceAlreadyExists
 		return
-	} else if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = nil
-		return
 	}
-
 	return
 }
 
@@ -180,6 +185,15 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	info.Created = time.Now().Unix()
 	info.Updated = info.Created
 	info.CreateBy = req.CreateBy
+	var x string
+	//TODO check the resource exists
+	if re := ex.db.WithContext(ctx).Table(SourceTableName).Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("space_id = ? AND name = ? and status != ?", info.SpaceId, info.Name, model.DataSource_Deleted).
+		Take(&x).RowsAffected; re > 0 {
+		err = qerror.ResourceAlreadyExists
+		return
+	}
+
 	if tmperr := ex.PingSource(ctx, info.SourceType, info.Url); tmperr != nil {
 		info.Connection = model.DataSource_Failed
 	} else {
@@ -190,6 +204,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 		return
 	}
 
+	//TODO check table exists
 	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName); err != nil {
 		return
 	}
@@ -359,7 +374,7 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, sourceIDs []string,
 				clause.Neq{Column: "status", Value: model.DataSource_Deleted},
 				expr,
 			},
-		}).Updates(map[string]interface{}{"status": model.DataSource_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
+		}).Updates(map[string]interface{}{"status": model.DataSource_Deleted, "updated": currentTime}).Error; err != nil {
 			return
 		}
 		//db := ex.db.WithContext(ctx)
@@ -401,7 +416,7 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, spaceIDs []strin
 			clause.Neq{Column: "status", Value: model.TableInfo_Deleted},
 			expr,
 		},
-	}).Updates(map[string]interface{}{"status": model.TableInfo_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
+	}).Updates(map[string]interface{}{"status": model.TableInfo_Deleted, "updated": currentTime}).Error; err != nil {
 		return
 	}
 	if err = tx.Table(SourceTableName).Clauses(clause.Where{
@@ -409,7 +424,7 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, spaceIDs []strin
 			clause.Neq{Column: "status", Value: model.TableInfo_Deleted},
 			expr,
 		},
-	}).Updates(map[string]interface{}{"status": model.DataSource_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
+	}).Updates(map[string]interface{}{"status": model.DataSource_Deleted, "updated": currentTime}).Error; err != nil {
 		return
 	}
 
@@ -692,7 +707,7 @@ func (ex *SourcemanagerExecutor) DeleteTable(ctx context.Context, tableIDs []str
 			clause.Neq{Column: "status", Value: model.TableInfo_Deleted},
 			expr,
 		},
-	}).Updates(map[string]interface{}{"status": model.TableInfo_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
+	}).Updates(map[string]interface{}{"status": model.TableInfo_Deleted, "updated": currentTime}).Error; err != nil {
 		ex.logger.Error().Error("delete source table", err).Fire()
 		return qerror.Internal
 	}

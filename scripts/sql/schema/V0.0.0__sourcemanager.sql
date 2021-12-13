@@ -30,7 +30,7 @@ create table source_manager(
 	connection int
 ) ENGINE=InnoDB;
 alter table source_manager add constraint source_manager_pkey primary key(source_id);
-create unique index sourcemanager_unique ON  source_manager (space_id, name);
+create index sourcemanager_unique ON source_manager (space_id, name, status);
 alter table source_manager add CONSTRAINT source_manager_type check(source_type >= 1 and source_type <= 8);
 alter table source_manager add constraint source_manager_status check (status >= 1 and status <= 2);
 alter table source_manager add constraint source_manager_connection check (connection >= 1 and connection <= 3);
@@ -52,4 +52,4 @@ create table source_tables(
 	foreign key(source_id) references source_manager(source_id)
 ) ENGINE=InnoDB;
 alter table source_tables add constraint sourcetables_pkey primary key(table_id);
-create unique index source_tables_unique ON  source_tables (space_id, name);
+create index source_tables_unique ON source_tables (space_id, name, status);

@@ -194,7 +194,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceTableName).Select("source_id", "space_id", "source_type", "name", "comment", "url", "created", "updated", "status", "connection").Create(info).Error
+	err = db.Table(SourceTableName).Select("source_id", "space_id", "source_type", "name", "comment", "url", "created", "updated", "status", "connection").Create(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source", err).Fire()
 		err = qerror.Internal
@@ -341,12 +341,32 @@ func (ex *SourcemanagerExecutor) Delete(ctx context.Context, sourceIDs []string,
 			return
 		}
 
-		db := ex.db.WithContext(ctx)
-		err = db.Table(SourceTableName).Where("source_id = ? ", id).Delete("").Error
-		if err != nil {
-			ex.logger.Error().Error("delete source", err).Fire()
-			err = qerror.Internal
+		eqExpr := make([]clause.Expression, len(sourceIDs))
+		for i := 0; i < len(sourceIDs); i++ {
+			eqExpr[i] = clause.Eq{Column: "source_id", Value: sourceIDs[i]}
 		}
+		var expr clause.Expression
+		if len(eqExpr) == 1 {
+			expr = eqExpr[0]
+		} else {
+			expr = clause.Or(eqExpr...)
+		}
+
+		currentTime := time.Now().Unix()
+		if err = ex.db.WithContext(ctx).Table(SourceTableName).Clauses(clause.Where{
+			Exprs: []clause.Expression{
+				clause.Neq{Column: "status", Value: model.DataSource_Deleted},
+				expr,
+			},
+		}).Updates(map[string]interface{}{"status": model.DataSource_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
+			return
+		}
+		//db := ex.db.WithContext(ctx)
+		//err = db.Table(SourceTableName).Where("source_id = ? ", id).Delete("").Error
+		//if err != nil {
+		//	ex.logger.Error().Error("delete source", err).Fire()
+		//	err = qerror.Internal
+		//}
 	}
 	return
 }
@@ -360,22 +380,57 @@ func (ex *SourcemanagerExecutor) DeleteAll(ctx context.Context, spaceIDs []strin
 	for i := 0; i < len(spaceIDs); i++ {
 		eqExpr[i] = clause.Eq{Column: "space_id", Value: spaceIDs[i]}
 	}
-
-	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).
-		Clauses(clause.Where{Exprs: []clause.Expression{clause.Or(eqExpr...)}}).
-		Delete("").Error
-	if err != nil {
+	var expr clause.Expression
+	if len(eqExpr) == 1 {
+		expr = eqExpr[0]
+	} else {
+		expr = clause.Or(eqExpr...)
+	}
+	currentTime := time.Now().Unix()
+	tx := ex.db.WithContext(ctx).Begin()
+	defer func() {
+		if err == nil {
+			err = tx.Commit().Error
+		} else {
+			tx.Rollback()
+		}
+	}()
+	if err = tx.Table(TableName).Clauses(clause.Where{
+		Exprs: []clause.Expression{
+			clause.Neq{Column: "status", Value: model.TableInfo_Deleted},
+			expr,
+		},
+	}).Updates(map[string]interface{}{"status": model.TableInfo_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
+		return
+	}
+	if err = tx.Table(SourceTableName).Clauses(clause.Where{
+		Exprs: []clause.Expression{
+			clause.Neq{Column: "status", Value: model.TableInfo_Deleted},
+			expr,
+		},
+	}).Updates(map[string]interface{}{"status": model.DataSource_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
 		return
 	}
 
-	err = db.Table(SourceTableName).
-		Clauses(clause.Where{Exprs: []clause.Expression{clause.Or(eqExpr...)}}).
-		Delete("").Error
-	if err != nil {
-		return
-	}
-
+	//eqExpr := make([]clause.Expression, len(spaceIDs))
+	//for i := 0; i < len(spaceIDs); i++ {
+	//	eqExpr[i] = clause.Eq{Column: "space_id", Value: spaceIDs[i]}
+	//}
+	//
+	//db := ex.db.WithContext(ctx)
+	//err = db.Table(TableName).
+	//	Clauses(clause.Where{Exprs: []clause.Expression{clause.Or(eqExpr...)}}).
+	//	Delete("").Error
+	//if err != nil {
+	//	return
+	//}
+	//
+	//err = db.Table(SourceTableName).
+	//	Clauses(clause.Where{Exprs: []clause.Expression{clause.Or(eqExpr...)}}).
+	//	Delete("").Error
+	//if err != nil {
+	//	return
+	//}
 	return
 }
 
@@ -514,6 +569,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	info.TableKind = req.GetTableKind()
 	info.Created = time.Now().Unix()
 	info.Updated = info.Created
+	info.Status = model.TableInfo_Enabled
 
 	if err = ex.CheckSourceState(ctx, info.SourceId); err != nil {
 		return
@@ -528,7 +584,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).Select("table_id", "source_id", "space_id", "name", "comment", "table_schema", "created", "updated", "table_kind").Create(info).Error
+	err = db.Table(TableName).Select("table_id", "source_id", "space_id", "name", "comment", "table_schema", "created", "updated", "table_kind", "status").Create(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("create source table", err).Fire()
 		err = qerror.Internal
@@ -601,19 +657,42 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 }
 
 func (ex *SourcemanagerExecutor) DeleteTable(ctx context.Context, tableIDs []string) (err error) {
-	for _, id := range tableIDs {
-		//DescribeTable will check source disable state
-		_, err = ex.DescribeTable(ctx, id)
-		if err != nil {
-			return
-		}
-
-		db := ex.db.WithContext(ctx)
-		err = db.Table(TableName).Where("table_id = ? ", id).Delete("").Error
-		if err != nil {
-			ex.logger.Error().Error("delete source table", err).Fire()
-			err = qerror.Internal
-		}
+	//for _, id := range tableIDs {
+	//	//DescribeTable will check source disable state
+	//	_, err = ex.DescribeTable(ctx, id)
+	//	if err != nil {
+	//		return
+	//	}
+	//
+	//	db := ex.db.WithContext(ctx)
+	//	err = db.Table(TableName).Where("table_id = ? ", id).Delete("").Error
+	//	if err != nil {
+	//		ex.logger.Error().Error("delete source table", err).Fire()
+	//		err = qerror.Internal
+	//	}
+	//}
+	if len(tableIDs) == 0 {
+		return qerror.InvalidParams.Format("tableIDs")
+	}
+	eqExpr := make([]clause.Expression, len(tableIDs))
+	for i := 0; i < len(tableIDs); i++ {
+		eqExpr[i] = clause.Eq{Column: "table_id", Value: tableIDs[i]}
+	}
+	var expr clause.Expression
+	if len(eqExpr) == 1 {
+		expr = eqExpr[0]
+	} else {
+		expr = clause.Or(eqExpr...)
+	}
+	currentTime := time.Now().Unix()
+	if err = ex.db.Where(ctx).Table(TableName).Clauses(clause.Where{
+		Exprs: []clause.Expression{
+			clause.Neq{Column: "status", Value: model.TableInfo_Deleted},
+			expr,
+		},
+	}).Updates(map[string]interface{}{"status": model.TableInfo_Deleted, "updated": currentTime, "deleted": currentTime}).Error; err != nil {
+		ex.logger.Error().Error("delete source table", err).Fire()
+		return qerror.Internal
 	}
 	return
 }
@@ -662,6 +741,7 @@ func (ex *SourcemanagerExecutor) List(ctx context.Context, input *request.ListSo
 			Value:  "%" + input.Search + "%",
 		})
 	}
+	exprs = append(exprs, clause.Neq{Column: "status", Value: model.DataSource_Deleted})
 
 	db := ex.db.WithContext(ctx)
 	err = db.Table(SourceTableName).Select("*").Clauses(clause.Where{Exprs: exprs}).
@@ -730,6 +810,10 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 			Value:  "%" + input.Search + "%",
 		})
 	}
+	exprs = append(exprs, clause.Neq{
+		Column: "status",
+		Value:  model.TableInfo_Deleted,
+	})
 
 	db := ex.db.WithContext(ctx)
 	err = db.Table(TableName).Select("*").Clauses(clause.Where{Exprs: exprs}).

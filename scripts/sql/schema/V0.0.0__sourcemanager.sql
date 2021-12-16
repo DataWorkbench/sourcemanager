@@ -24,7 +24,6 @@ create table source_manager(
 	url varchar(8000),
 	created BIGINT(20) UNSIGNED NOT NULL,
 	updated BIGINT(20) UNSIGNED NOT NULL,
-	deleted BIGINT(20) DEFAULT 0 NOT NULL,
 	status int,
 	create_by varchar(64),
 	connection int
@@ -45,7 +44,6 @@ create table source_tables(
 	table_schema varchar(8000),
 	created BIGINT(20) UNSIGNED NOT NULL,
 	updated BIGINT(20) UNSIGNED NOT NULL,
-	deleted BIGINT(20) UNSIGNED NOT NULL,
 	status int,
 	create_by varchar(64),
 	table_kind int,

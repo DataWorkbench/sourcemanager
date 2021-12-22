@@ -264,6 +264,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 	info.Comment = req.GetComment()
 	info.Url = req.GetUrl()
 	info.Updated = time.Now().Unix()
+	info.SpaceId = req.GetSpaceId()
 
 	if err = ex.CheckSourceState(ctx, info.SourceId); err != nil {
 		return
@@ -286,6 +287,16 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 		// it is self.
 		err = nil
 	}
+
+	//TODO check if the name exists
+	var x string
+	if re := ex.db.WithContext(ctx).Table(SourceTableName).Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("space_id = ? AND name = ? and status != ?", info.GetSpaceId(), info.GetName(), model.TableInfo_Deleted).
+		Take(&x).RowsAffected; re > 0 && x != info.GetSourceId() {
+		err = qerror.ResourceAlreadyExists
+		return
+	}
+
 	if tmperr := ex.PingSource(ctx, info.SourceType, info.Url); tmperr != nil {
 		info.Connection = model.DataSource_Failed
 	} else {

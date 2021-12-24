@@ -140,7 +140,7 @@ func (ex *SourcemanagerExecutor) checkSourceInfo(url *datasourcepb.DataSourceURL
 	return nil
 }
 
-func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, name string, table string, primaryKey string) (err error) {
+func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, name string, table string, primaryKeyName string, primaryKeyValue string) (err error) {
 	var x string
 
 	if len(strings.Split(name, ".")) != 1 {
@@ -149,14 +149,14 @@ func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, 
 		return
 	}
 
-	if re := ex.db.WithContext(ctx).Table(table).Clauses(clause.Locking{Strength: "UPDATE"}).
+	if re := ex.db.WithContext(ctx).Table(table).Select(primaryKeyName).Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("space_id = ? AND name = ? and status != ?", spaceid, name, model.TableInfo_Deleted).
 		Take(&x).RowsAffected; re > 0 {
 		err = qerror.ResourceAlreadyExists
 	}
-	ex.logger.Info().Msg("===================source manager primary key========================").Msg(primaryKey).Fire()
+	ex.logger.Info().Msg("===================source manager primary key========================").Msg(primaryKeyValue).Fire()
 	ex.logger.Info().Msg("==========================take x ======================================").Msg(x).Fire()
-	if x != "" && len(x) > 0 && x == primaryKey {
+	if x != "" && len(x) > 0 && x == primaryKeyValue {
 		return nil
 	}
 	return
@@ -191,7 +191,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	}
 
 	//TODO check table exists
-	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName, ""); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName, "source_id", ""); err != nil {
 		return
 	}
 
@@ -262,7 +262,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 
 	//descInfo, _ := ex.Describe(ctx, info.SourceId, false)
 
-	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName, info.SourceId); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName, "source_id", info.SourceId); err != nil {
 		return
 	}
 
@@ -273,7 +273,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(SourceTableName).Select("source_type", "name", "comment", "url", "updated", "connection").Where("source_id = ? ", info.SourceId).Updates(info).Error
+	err = db.Table(SourceTableName).Select("source_type", "name", "comment", "url", "updated", "connection").Where("source_id = ? ", info.SourceId).Updates(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("update source", err).Fire()
 		err = qerror.Internal
@@ -576,7 +576,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 		return
 	}
 
-	if err = ex.CheckName(ctx, info.SpaceId, info.Name, TableName, ""); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, TableName, "table_id", ""); err != nil {
 		return
 	}
 
@@ -632,12 +632,12 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 		return
 	}
 
-	if err = ex.CheckName(ctx, selfInfo.SpaceId, info.Name, TableName, info.TableId); err != nil {
+	if err = ex.CheckName(ctx, selfInfo.SpaceId, info.Name, TableName, "table_id", info.TableId); err != nil {
 		return
 	}
 
 	db := ex.db.WithContext(ctx)
-	err = db.Table(TableName).Select("table_kind", "name", "comment", "url", "updated").Where("table_id = ? ", info.TableId).Updates(info).Error
+	err = db.Table(TableName).Select("table_kind", "name", "comment", "url", "updated").Where("table_id = ? ", info.TableId).Updates(&info).Error
 	if err != nil {
 		ex.logger.Error().Error("update source table", err).Fire()
 		err = qerror.Internal

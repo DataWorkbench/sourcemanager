@@ -147,7 +147,9 @@ func PingFtp(url *datasourcepb.FtpURL) (err error) {
 	if conn, err = goftp.Connect(fmt.Sprintf("%v:%d", url.Host, url.Port)); err != nil {
 		return
 	}
-	defer conn.Close()
+	if err == nil {
+		conn.Close()
+	}
 	return
 }
 

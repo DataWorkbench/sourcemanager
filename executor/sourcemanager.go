@@ -140,7 +140,7 @@ func (ex *SourcemanagerExecutor) checkSourceInfo(url *datasourcepb.DataSourceURL
 	return nil
 }
 
-func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, name string, table string) (err error) {
+func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, name string, table string, primaryKey string) (err error) {
 	var x string
 
 	if len(strings.Split(name, ".")) != 1 {
@@ -163,7 +163,11 @@ func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, 
 		Where("space_id = ? AND name = ? and status != ?", spaceid, name, model.TableInfo_Deleted).
 		Take(&x).RowsAffected; re > 0 {
 		err = qerror.ResourceAlreadyExists
-		return
+	}
+	if primaryKey != "" && len(primaryKey) > 0 {
+		if primaryKey == x {
+			err = nil
+		}
 	}
 	return
 }
@@ -205,7 +209,7 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	}
 
 	//TODO check table exists
-	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName, ""); err != nil {
 		return
 	}
 
@@ -276,7 +280,7 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 
 	descInfo, _ := ex.Describe(ctx, info.SourceId, false)
 
-	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName, info.SourceId); err != nil {
 		if err == qerror.InvalidSourceName {
 			return
 		}
@@ -607,7 +611,7 @@ func (ex *SourcemanagerExecutor) CreateTable(ctx context.Context, req *request.C
 		return
 	}
 
-	if err = ex.CheckName(ctx, info.SpaceId, info.Name, TableName); err != nil {
+	if err = ex.CheckName(ctx, info.SpaceId, info.Name, TableName, ""); err != nil {
 		return
 	}
 
@@ -663,7 +667,7 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 		return
 	}
 
-	if err = ex.CheckName(ctx, selfInfo.SpaceId, info.Name, TableName); err != nil {
+	if err = ex.CheckName(ctx, selfInfo.SpaceId, info.Name, TableName, info.TableId); err != nil {
 		if err == qerror.InvalidSourceName {
 			return
 		}

@@ -155,7 +155,8 @@ func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, 
 		err = qerror.ResourceAlreadyExists
 	}
 	ex.logger.Info().Msg("===================source manager primary key========================").Msg(primaryKey).Fire()
-	if x != "" && len(x) > 0 && x == primaryKey{
+	ex.logger.Info().Msg("==========================take x ======================================").Msg(x).Fire()
+	if x != "" && len(x) > 0 && x == primaryKey {
 		return nil
 	}
 	return

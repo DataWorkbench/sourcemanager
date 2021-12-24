@@ -149,25 +149,14 @@ func (ex *SourcemanagerExecutor) CheckName(ctx context.Context, spaceid string, 
 		return
 	}
 
-	//db := ex.db.WithContext(ctx)
-	//err = db.Table(table).Select("space_id").Where("space_id = ? AND name = ? AND status != ?", spaceid, name,model.TableInfo_Deleted).Take(&x).Error
-	//if err == nil {
-	//	err = qerror.ResourceAlreadyExists
-	//	return
-	//} else if errors.Is(err, gorm.ErrRecordNotFound) {
-	//	err = nil
-	//	return
-	//}
-
 	if re := ex.db.WithContext(ctx).Table(table).Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("space_id = ? AND name = ? and status != ?", spaceid, name, model.TableInfo_Deleted).
 		Take(&x).RowsAffected; re > 0 {
 		err = qerror.ResourceAlreadyExists
 	}
-	if primaryKey != "" && len(primaryKey) > 0 {
-		if primaryKey == x {
-			err = nil
-		}
+	ex.logger.Info().Msg("===================source manager primary key========================").Msg(primaryKey).Fire()
+	if x != "" && len(x) > 0 && x == primaryKey{
+		return nil
 	}
 	return
 }
@@ -189,14 +178,6 @@ func (ex *SourcemanagerExecutor) Create(ctx context.Context, req *request.Create
 	info.Created = time.Now().Unix()
 	info.Updated = info.Created
 	info.CreateBy = req.CreateBy
-	var x string
-	//TODO check the resource exists
-	if re := ex.db.WithContext(ctx).Table(SourceTableName).Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("space_id = ? AND name = ? and status != ?", info.SpaceId, info.Name, model.DataSource_Deleted).
-		Take(&x).RowsAffected; re > 0 {
-		err = qerror.ResourceAlreadyExists
-		return
-	}
 
 	if tmperr := ex.PingSource(ctx, info.SourceType, info.Url); tmperr != nil {
 		info.Connection = model.DataSource_Failed
@@ -278,26 +259,9 @@ func (ex *SourcemanagerExecutor) Update(ctx context.Context, req *request.Update
 		return
 	}
 
-	descInfo, _ := ex.Describe(ctx, info.SourceId, false)
+	//descInfo, _ := ex.Describe(ctx, info.SourceId, false)
 
 	if err = ex.CheckName(ctx, info.SpaceId, info.Name, SourceTableName, info.SourceId); err != nil {
-		if err == qerror.InvalidSourceName {
-			return
-		}
-
-		if err == qerror.ResourceAlreadyExists && descInfo.Name != info.Name {
-			return
-		}
-		// it is self.
-		err = nil
-	}
-
-	//TODO check if the name exists
-	var x string
-	if re := ex.db.WithContext(ctx).Table(SourceTableName).Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("space_id = ? AND name = ? and status != ?", info.GetSpaceId(), info.GetName(), model.TableInfo_Deleted).
-		Take(&x).RowsAffected; re > 0 && x != info.GetSourceId() {
-		err = qerror.ResourceAlreadyExists
 		return
 	}
 
@@ -668,15 +632,7 @@ func (ex *SourcemanagerExecutor) UpdateTable(ctx context.Context, req *request.U
 	}
 
 	if err = ex.CheckName(ctx, selfInfo.SpaceId, info.Name, TableName, info.TableId); err != nil {
-		if err == qerror.InvalidSourceName {
-			return
-		}
-
-		if err == qerror.ResourceAlreadyExists && selfInfo.Name != info.Name {
-			return
-		}
-		// it is self.
-		err = nil
+		return
 	}
 
 	db := ex.db.WithContext(ctx)

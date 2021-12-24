@@ -131,9 +131,11 @@ func PingHBase(url *datasourcepb.HBaseURL) (err error) {
 		conn *zk.Conn
 	)
 
-	hosts := []string{url.Zookeeper}
+	hosts := strings.Split(url.Zookeeper, ",")
 	conn, _, err = zk.Connect(hosts, time.Millisecond*100)
-	defer conn.Close()
+	if err == nil {
+		conn.Close()
+	}
 	return
 }
 

@@ -114,8 +114,8 @@ func mainInit(t *testing.T) {
 	// kafka {"paycount": 2, "paymoney": "EUR"} {"paycount": 1, "paymoney": "USD"}
 	KafkaManager = request.CreateSource{SourceId: "som-00000000000kafka", SpaceId: spaceid, SourceType: model.DataSource_Kafka, Name: "kafka", Comment: "",
 		Url: &datasourcepb.DataSourceURL{Kafka: &datasourcepb.KafkaURL{KafkaBrokers: "dataworkbench-kafka-for-test:9092"}}}
-	KafkaSource = request.CreateTable{TableId: "sot-00000kafkasource", SourceId: KafkaManager.SourceId, SpaceId: spaceid, Name: "billing", Comment: "", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Kafka: &flinkpb.KafkaTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "paymoney", Type: "string", Comment: "", PrimaryKey: "f"}}, TimeColumn: []*flinkpb.SqlTimeColumnType{&flinkpb.SqlTimeColumnType{Column: "tproctime", Type: "proctime"}}, Topic: "workbench", Format: "json", ConnectorOptions: []*flinkpb.ConnectorOption{&flinkpb.ConnectorOption{Name: "'json.fail-on-missing-field'", Value: "'false'"}, &flinkpb.ConnectorOption{Name: "'json.ignore-parse-errors'", Value: "'true'"}}}}}
-	KafkaDest = request.CreateTable{TableId: "sot-0000000kafkadest", SourceId: KafkaManager.SourceId, SpaceId: spaceid, Name: "billing_dest", Comment: "", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Kafka: &flinkpb.KafkaTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "paymoney", Type: "string", Comment: "", PrimaryKey: "f"}}, TimeColumn: []*flinkpb.SqlTimeColumnType{&flinkpb.SqlTimeColumnType{Column: "tproctime", Type: "proctime"}}, Topic: "workbench_dest", Format: "json", ConnectorOptions: []*flinkpb.ConnectorOption{&flinkpb.ConnectorOption{Name: "'json.fail-on-missing-field'", Value: "'false'"}, &flinkpb.ConnectorOption{Name: "'json.ignore-parse-errors'", Value: "'true'"}}}}}
+	KafkaSource = request.CreateTable{TableId: "sot-00000kafkasource", SourceId: KafkaManager.SourceId, SpaceId: spaceid, Name: "billing", Comment: "", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Kafka: &flinkpb.KafkaTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "paymoney", Type: "string", Comment: "", PrimaryKey: "f"}}, TimeColumn: []*flinkpb.SqlTimeColumnType{&flinkpb.SqlTimeColumnType{Column: "tproctime", Type: flinkpb.SqlTimeColumnType_Proctime}}, Topic: "workbench", Format: "json", ConnectorOptions: []*flinkpb.ConnectorOption{&flinkpb.ConnectorOption{Name: "'json.fail-on-missing-field'", Value: "'false'"}, &flinkpb.ConnectorOption{Name: "'json.ignore-parse-errors'", Value: "'true'"}}}}}
+	KafkaDest = request.CreateTable{TableId: "sot-0000000kafkadest", SourceId: KafkaManager.SourceId, SpaceId: spaceid, Name: "billing_dest", Comment: "", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Kafka: &flinkpb.KafkaTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "paycount", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "paymoney", Type: "string", Comment: "", PrimaryKey: "f"}}, TimeColumn: []*flinkpb.SqlTimeColumnType{&flinkpb.SqlTimeColumnType{Column: "tproctime", Type: flinkpb.SqlTimeColumnType_Proctime}}, Topic: "workbench_dest", Format: "json", ConnectorOptions: []*flinkpb.ConnectorOption{&flinkpb.ConnectorOption{Name: "'json.fail-on-missing-field'", Value: "'false'"}, &flinkpb.ConnectorOption{Name: "'json.ignore-parse-errors'", Value: "'true'"}}}}}
 
 	// S3
 	S3Manager = request.CreateSource{SourceId: "som-00000000000000s3", SpaceId: spaceid, SourceType: model.DataSource_S3, Name: "s3",
@@ -132,7 +132,7 @@ func mainInit(t *testing.T) {
 
 	// hbase
 	HbaseManager = request.CreateSource{SourceId: "som-00000000000hbase", SpaceId: spaceid, SourceType: model.DataSource_HBase, Name: "hbase",
-		Url: &datasourcepb.DataSourceURL{Hbase: &datasourcepb.HBaseURL{Zookeeper: "hbase:2181", ZNode: "/hbase"}}}
+		Url: &datasourcepb.DataSourceURL{Hbase: &datasourcepb.HBaseURL{Zookeeper: "hbasez:2181", ZNode: "/hbase"}}}
 	HbaseSource = request.CreateTable{TableId: "sot-0000hbase_source", SourceId: HbaseManager.SourceId, SpaceId: spaceid, Name: "hbases", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Hbase: &flinkpb.HBaseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "rowkey", Type: "string", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "columna", Type: "ROW<a STRING>", Comment: "xxx", PrimaryKey: "f"}}}}}
 	HbaseDest = request.CreateTable{TableId: "sot-000000hbase_dest", SourceId: HbaseManager.SourceId, SpaceId: spaceid, Name: "hbased", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Hbase: &flinkpb.HBaseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "rowkey", Type: "string", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "columna", Type: "ROW<a STRING>", Comment: "xxx", PrimaryKey: "f"}}}}}
 
@@ -259,10 +259,10 @@ func Test_PingSource(t *testing.T) {
 	var p request.PingSource
 	var err error
 
-	p.SourceType = MysqlManager.SourceType
-	p.Url = MysqlManager.Url
-	_, err = client.PingSource(ctx, &p)
-	require.Nil(t, err, "%+v", err)
+	//p.SourceType = MysqlManager.SourceType
+	//p.Url = MysqlManager.Url
+	//_, err = client.PingSource(ctx, &p)
+	//require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = PGManager.SourceType
 	//p.Url = PGManager.Url
@@ -279,15 +279,15 @@ func Test_PingSource(t *testing.T) {
 	//_, err = client.PingSource(ctx, &p)
 	//require.Nil(t, err, "%+v", err)
 
-	p.SourceType = S3Manager.SourceType
-	p.Url = S3Manager.Url
-	_, err = client.PingSource(ctx, &p)
-	require.NotNil(t, err, "%+v", err)
-
-	//p.SourceType = HbaseManager.SourceType
-	//p.Url = HbaseManager.Url
+	//p.SourceType = S3Manager.SourceType
+	//p.Url = S3Manager.Url
 	//_, err = client.PingSource(ctx, &p)
-	//require.Nil(t, err, "%+v", err)
+	//require.NotNil(t, err, "%+v", err)
+
+	p.SourceType = HbaseManager.SourceType
+	p.Url = HbaseManager.Url
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = FtpManager.SourceType
 	//p.Url = FtpManager.Url

@@ -19,14 +19,6 @@ github.com/DataWorkbench/glog v0.0.0-20210809050640-4960fd6de6ab/go.mod h1:zymxJ
 github.com/DataWorkbench/glog v0.0.0-20211116140154-21c3eb33cc6d h1:R1jj2B55j1zabVtkXB74/J/68+jG8mKFkLZMhyMWJEU=
 github.com/DataWorkbench/glog v0.0.0-20211116140154-21c3eb33cc6d/go.mod h1:zymxJLXn162xdWYUqIb729S3ZzRQpdTj/LwnW+xxru4=
 github.com/DataWorkbench/gproto v0.0.0-20211104011919-3ac6e567ea90/go.mod h1:bdju+jQfnsfc2IGHllEcCR9Nm57FjIqu8I2IANyY49Q=
-github.com/DataWorkbench/gproto v0.0.0-20211206155509-5633cd9d78ee h1:N2r/WbsIuX9XljSCSF4a3RfICPQCxWBPkrU50r6MbDU=
-github.com/DataWorkbench/gproto v0.0.0-20211206155509-5633cd9d78ee/go.mod h1:bdju+jQfnsfc2IGHllEcCR9Nm57FjIqu8I2IANyY49Q=
-github.com/DataWorkbench/gproto v0.0.0-20211213024919-0e9af9cdec30 h1:TyFkS3GOtp2v8GSwPQvgu15Ce9G4kksCACQpfxEqiRY=
-github.com/DataWorkbench/gproto v0.0.0-20211213024919-0e9af9cdec30/go.mod h1:bdju+jQfnsfc2IGHllEcCR9Nm57FjIqu8I2IANyY49Q=
-github.com/DataWorkbench/gproto v0.0.0-20211213034603-e8e837b2ebbb h1:WTp7kiGlogkthtApKN2eKoMRuPWEJ5lxS03M1hXv9RY=
-github.com/DataWorkbench/gproto v0.0.0-20211213034603-e8e837b2ebbb/go.mod h1:bdju+jQfnsfc2IGHllEcCR9Nm57FjIqu8I2IANyY49Q=
-github.com/DataWorkbench/gproto v0.0.0-20211213125712-a8b37285bc0f h1:SHO7KmPH5aMQ5dh12Nn+/EtE0g1IsQjOUcW65k8aix4=
-github.com/DataWorkbench/gproto v0.0.0-20211213125712-a8b37285bc0f/go.mod h1:bdju+jQfnsfc2IGHllEcCR9Nm57FjIqu8I2IANyY49Q=
 github.com/DataWorkbench/gproto v0.0.0-20211222062111-3fd80e10b28e h1:TV2envi86P0YkI5XBHJx/IVTRPnLBEyC8Cy1NJivCCw=
 github.com/DataWorkbench/gproto v0.0.0-20211222062111-3fd80e10b28e/go.mod h1:bdju+jQfnsfc2IGHllEcCR9Nm57FjIqu8I2IANyY49Q=
 github.com/DataWorkbench/loader v0.0.0-20210808061751-6e1ba7df5cdd h1:JjlZ3lHQT7XQC1PjeWDIKozvW40E+L4WQqS/EKewBMg=

@@ -93,9 +93,9 @@ func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
 }
 
 func PingKafka(url *datasourcepb.KafkaURL) (err error) {
-	dsn := fmt.Sprintf("%s", url.KafkaBrokers)
+	dsn := strings.Split(url.KafkaBrokers, ",")
 
-	consumer, terr := sarama.NewConsumer([]string{dsn}, nil)
+	consumer, terr := sarama.NewConsumer(dsn, nil)
 	if terr != nil {
 		err = terr
 		return

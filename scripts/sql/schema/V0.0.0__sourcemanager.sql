@@ -31,7 +31,7 @@ create table source_manager(
 alter table source_manager add constraint source_manager_pkey primary key(source_id);
 create index sourcemanager_unique ON source_manager (space_id, name, status);
 alter table source_manager add CONSTRAINT source_manager_type check(source_type >= 1 and source_type <= 8);
-alter table source_manager add constraint source_manager_status check (status >= 1 and status <= 2);
+alter table source_manager add constraint source_manager_status check (status >= 1 and status <= 3);
 alter table source_manager add constraint source_manager_connection check (connection >= 1 and connection <= 3);
 
 -- tableManagerTable

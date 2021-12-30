@@ -1,6 +1,3 @@
--- DATABASE
-CREATE DATABASE IF NOT EXISTS data_workbench;
-USE data_workbench;
 
 create table source_utile(
 	engine_type varchar(16),

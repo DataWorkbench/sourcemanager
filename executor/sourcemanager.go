@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/DataWorkbench/common/constants"
 	"github.com/DataWorkbench/common/qerror"
@@ -787,7 +786,7 @@ func (ex *SourcemanagerExecutor) ListTable(ctx context.Context, input *request.L
 			Value:  input.SourceId,
 		})
 	}
-	if input.TableKind > model.TableInfo__ {
+	if input.TableKind > model.TableInfo_KindUnset {
 		exprs = append(exprs, clause.Eq{
 			Column: "table_kind",
 			Value:  input.TableKind,

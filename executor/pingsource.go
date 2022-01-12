@@ -3,6 +3,9 @@ package executor
 import (
 	"context"
 	"fmt"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"io"
 	"io/ioutil"
 	"net"
@@ -18,17 +21,23 @@ import (
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/dutchcoders/goftp"
 	"github.com/samuel/go-zookeeper/zk"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func PingMysql(url *datasourcepb.MySQLURL) (err error) {
+	ip := net.JoinHostPort(url.Host, strconv.Itoa(int(url.Port)))
+	conn, err := net.DialTimeout("tcp", ip, time.Millisecond*2000)
+	if err == nil {
+		if conn != nil {
+			_ = conn.Close()
+		}
+	} else {
+		return qerror.ConnectSourceFailed
+	}
+
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		url.User, url.Password, url.Host, url.Port, url.Database,
 	)
-
 	var db *gorm.DB
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -41,23 +50,42 @@ func PingMysql(url *datasourcepb.MySQLURL) (err error) {
 }
 
 func PingPostgreSQL(url *datasourcepb.PostgreSQLURL) (err error) {
+	ip := net.JoinHostPort(url.Host, strconv.Itoa(int(url.Port)))
+	conn, err := net.DialTimeout("tcp", ip, time.Millisecond*2000)
+	if err == nil {
+		if conn != nil {
+			_ = conn.Close()
+		}
+	} else {
+		return qerror.ConnectSourceFailed
+	}
+
 	dsn := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%d  dbname=%s ",
 		url.User, url.Password, url.Host, url.Port, url.Database,
 	)
-
 	var db *gorm.DB
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return err
 	} else {
 		sqldb, _ := db.DB()
-		sqldb.Close()
+		_ = sqldb.Close()
 	}
 	return
 }
 
 func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
+	ip := net.JoinHostPort(url.Host, strconv.Itoa(int(url.Port)))
+	conn, err := net.DialTimeout("tcp", ip, time.Millisecond*2000)
+	if err == nil {
+		if conn != nil {
+			_ = conn.Close()
+		}
+	} else {
+		return qerror.ConnectSourceFailed
+	}
+
 	var (
 		client  *http.Client
 		req     *http.Request
@@ -83,11 +111,11 @@ func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
 	}
 
 	repBody, _ := ioutil.ReadAll(rep.Body)
-	rep.Body.Close()
+	_ = rep.Body.Close()
 
 	if rep.StatusCode != http.StatusOK {
 		err = fmt.Errorf("%s request failed, http status code %d, message %s", dsn, rep.StatusCode, string(repBody))
-		rep.Body.Close()
+		_ = rep.Body.Close()
 		return
 	}
 	return
@@ -101,7 +129,7 @@ func PingKafka(url *datasourcepb.KafkaURL) (err error) {
 		err = terr
 		return
 	}
-	consumer.Close()
+	_ = consumer.Close()
 	return
 }
 
@@ -150,7 +178,7 @@ func PingFtp(url *datasourcepb.FtpURL) (err error) {
 	}
 
 	err = conn.Login(url.User, url.Password)
-	conn.Close()
+	_ = conn.Close()
 	return
 }
 
@@ -159,15 +187,13 @@ func PingHDFS(url *datasourcepb.HDFSURL) (err error) {
 	// https://studygolang.com/articles/766 -- use 50070 http port. but user input the IPC port.
 	ip := net.JoinHostPort(url.GetNodes().GetNameNode(), strconv.Itoa(int(url.GetNodes().GetPort())))
 	conn, err := net.DialTimeout("tcp", ip, time.Millisecond*2000)
-	if err == nil && conn != nil {
-		conn.Close()
+	if err == nil {
+		if conn != nil {
+			_ = conn.Close()
+		}
 		return nil
 	}
-	if err == nil && conn == nil {
-		err = fmt.Errorf("hdfs can't connected")
-	}
-
-	return
+	return qerror.ConnectSourceFailed
 }
 
 func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype model.DataSource_Type, url *datasourcepb.DataSourceURL) (err error) {

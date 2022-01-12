@@ -94,7 +94,7 @@ func mainInit(t *testing.T) {
 	// Mysql
 	// https://segmentfault.com/a/1190000039048901
 	MysqlManager = request.CreateSource{SourceId: "som-00000000000mysql", SpaceId: spaceid, SourceType: model.DataSource_MySQL, Name: "mysql", Comment: "",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "127.0.0.2", Database: "data_workbench", Port: 3306}}}
 	MysqlSource = request.CreateTable{TableId: "sot-00000mysqlsource", SourceId: MysqlManager.SourceId, SpaceId: spaceid, Name: "ms", Comment: "mysql", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Mysql: &flinkpb.MySQLTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 	MysqlDest = request.CreateTable{TableId: "sot-0000000mysqldest", SourceId: MysqlManager.SourceId, SpaceId: spaceid, Name: "md", Comment: "mysql dest", TableKind: model.TableInfo_Destination, TableSchema: &flinkpb.TableSchema{Mysql: &flinkpb.MySQLTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 
@@ -259,10 +259,10 @@ func Test_PingSource(t *testing.T) {
 	var p request.PingSource
 	var err error
 
-	//p.SourceType = MysqlManager.SourceType
-	//p.Url = MysqlManager.Url
-	//_, err = client.PingSource(ctx, &p)
-	//require.Nil(t, err, "%+v", err)
+	p.SourceType = MysqlManager.SourceType
+	p.Url = MysqlManager.Url
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = PGManager.SourceType
 	//p.Url = PGManager.Url
@@ -294,10 +294,10 @@ func Test_PingSource(t *testing.T) {
 	//_, err = client.PingSource(ctx, &p)
 	//require.Nil(t, err, "%+v", err)
 
-	p.SourceType = HDFSManager.SourceType
-	p.Url = HDFSManager.Url
-	_, err = client.PingSource(ctx, &p)
-	require.Nil(t, err, "%+v", err)
+	//p.SourceType = HDFSManager.SourceType
+	//p.Url = HDFSManager.Url
+	//_, err = client.PingSource(ctx, &p)
+	//require.Nil(t, err, "%+v", err)
 }
 
 func Test_DisableSource(t *testing.T) {

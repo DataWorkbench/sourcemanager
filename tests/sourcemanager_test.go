@@ -94,7 +94,7 @@ func mainInit(t *testing.T) {
 	// Mysql
 	// https://segmentfault.com/a/1190000039048901
 	MysqlManager = request.CreateSource{SourceId: "som-00000000000mysql", SpaceId: spaceid, SourceType: model.DataSource_MySQL, Name: "mysql", Comment: "",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "127.0.0.2", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataomnis-db", Database: "dataomnis", Port: 3306}}}
 	MysqlSource = request.CreateTable{TableId: "sot-00000mysqlsource", SourceId: MysqlManager.SourceId, SpaceId: spaceid, Name: "ms", Comment: "mysql", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Mysql: &flinkpb.MySQLTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 	MysqlDest = request.CreateTable{TableId: "sot-0000000mysqldest", SourceId: MysqlManager.SourceId, SpaceId: spaceid, Name: "md", Comment: "mysql dest", TableKind: model.TableInfo_Destination, TableSchema: &flinkpb.TableSchema{Mysql: &flinkpb.MySQLTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "t"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 
@@ -141,13 +141,13 @@ func mainInit(t *testing.T) {
 		Url: &datasourcepb.DataSourceURL{Ftp: &datasourcepb.FtpURL{Host: "42.193.101.183", Port: 21}}}
 
 	NewSpaceManager = request.CreateSource{SourceId: "som-00000000newspace", SpaceId: newspaceid, SourceType: model.DataSource_MySQL, Name: "mysql", Comment: "newspace",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataomnis-db", Database: "dataomnis", Port: 3306}}}
 	NameExistsManager = request.CreateSource{SourceId: "som-000000nameexists", SpaceId: spaceid, SourceType: model.DataSource_MySQL, Name: "mysql",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataomnis-db", Database: "dataomnis", Port: 3306}}}
 	NameErrorManager = request.CreateSource{SourceId: "som-000000nameerror", SpaceId: spaceid, SourceType: model.DataSource_MySQL, Name: "mysql.mysql",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataomnis-db", Database: "dataomnis", Port: 3306}}}
 	SourceTypeErrorManager = request.CreateSource{SourceId: "som-0sourcetypeerror", SpaceId: spaceid, SourceType: 10000, Name: "SourceTypeError",
-		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataworkbench-db", Database: "data_workbench", Port: 3306}}}
+		Url: &datasourcepb.DataSourceURL{Mysql: &datasourcepb.MySQLURL{User: "root", Password: "password", Host: "dataomnis-db", Database: "dataomnis", Port: 3306}}}
 
 	//// Source Tables
 	//TableUDFSource = request.CreateTable{ID: "sot-0123456789012362", SourceId: MysqlManager.ID, Name: "udfs", Comment: "udfs", Url: typeToJsonString(constants.FlinkTableDefineMysql{SqlColumn: []constants.SqlColumnType{constants.SqlColumnType{Name: "a", Type: "varchar", PrimaryKey: "f", Length: "10"}}})}

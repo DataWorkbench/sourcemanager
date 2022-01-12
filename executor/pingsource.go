@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/DataWorkbench/common/qerror"
@@ -76,13 +75,9 @@ func PingPostgreSQL(url *datasourcepb.PostgreSQLURL) (err error) {
 	return
 }
 
-var sy sync.Mutex
+
 
 func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
-	sy.Lock()
-	defer func() {
-		sy.Unlock()
-	}()
 	ip := net.JoinHostPort(url.Host, strconv.Itoa(int(url.Port)))
 	conn, err := net.DialTimeout("tcp", ip, time.Millisecond*2000)
 	if err == nil {
@@ -100,6 +95,14 @@ func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
 		reqBody io.Reader
 	)
 
+	defer func() {
+		if rep!=nil {
+			_ = rep.Body.Close()
+		}
+		if client!=nil {
+			client.CloseIdleConnections()
+		}
+	}()
 	client = &http.Client{Timeout: time.Millisecond * 100}
 	reqBody = strings.NewReader("SELECT 1")
 	dsn := fmt.Sprintf(
@@ -122,7 +125,6 @@ func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
 
 	if rep.StatusCode != http.StatusOK {
 		err = fmt.Errorf("%s request failed, http status code %d, message %s", dsn, rep.StatusCode, string(repBody))
-		_ = rep.Body.Close()
 		return
 	}
 	return

@@ -101,7 +101,7 @@ func mainInit(t *testing.T) {
 	// ClickHouse
 	// create table cks(paycount bigint, paymoney varchar(10)) ENGINE=TinyLog;
 	// create table zz(id bigint, id1 bigint, t timestamp, v varchar(10), primary key (id)) engine=MergeTree;
-	ClickHouseManager = request.CreateSource{SourceId: "som-000000clickhouse", SpaceId: spaceid, SourceType: model.DataSource_ClickHouse, Name: "clickhouse", Comment: "clickhouse", Url: &datasourcepb.DataSourceURL{Clickhouse: &datasourcepb.ClickHouseURL{User: "default", Password: "", Host: "clickhouse", Port: 8123, Database: "default"}}}
+	ClickHouseManager = request.CreateSource{SourceId: "som-000000clickhouse", SpaceId: spaceid, SourceType: model.DataSource_ClickHouse, Name: "clickhouse", Comment: "clickhouse", Url: &datasourcepb.DataSourceURL{Clickhouse: &datasourcepb.ClickHouseURL{User: "default", Password: "zhu88jie", Host: "139.198.42.56", Port: 8123, Database: "default"}}}
 	ClickHouseSource = request.CreateTable{TableId: "sot-clickhousesource", SourceId: ClickHouseManager.SourceId, SpaceId: spaceid, Name: "cks", Comment: "cks", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Clickhouse: &flinkpb.ClickHouseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 	ClickHouseDest = request.CreateTable{TableId: "sot-0clickhouse_dest", SourceId: ClickHouseManager.SourceId, SpaceId: spaceid, Name: "ckd", Comment: "ckd", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Clickhouse: &flinkpb.ClickHouseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}}}}
 
@@ -259,20 +259,20 @@ func Test_PingSource(t *testing.T) {
 	var p request.PingSource
 	var err error
 
-	p.SourceType = MysqlManager.SourceType
-	p.Url = MysqlManager.Url
-	_, err = client.PingSource(ctx, &p)
-	require.Nil(t, err, "%+v", err)
+	//p.SourceType = MysqlManager.SourceType
+	//p.Url = MysqlManager.Url
+	//_, err = client.PingSource(ctx, &p)
+	//require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = PGManager.SourceType
 	//p.Url = PGManager.Url
 	//_, err = client.PingSource(ctx, &p)
 	//require.NotNil(t, err, "%+v", err)
 
-	//p.SourceType = ClickHouseManager.SourceType
-	//p.Url = ClickHouseManager.Url
-	//_, err = client.PingSource(ctx, &p)
-	//require.Nil(t, err, "%+v", err)
+	p.SourceType = ClickHouseManager.SourceType
+	p.Url = ClickHouseManager.Url
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = KafkaManager.SourceType
 	//p.Url = KafkaManager.Url

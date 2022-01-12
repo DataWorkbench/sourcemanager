@@ -20,7 +20,6 @@ import (
 	"github.com/Shopify/sarama"
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/dutchcoders/goftp"
-	"github.com/samuel/go-zookeeper/zk"
 )
 
 func PingMysql(url *datasourcepb.MySQLURL) (err error) {
@@ -75,8 +74,6 @@ func PingPostgreSQL(url *datasourcepb.PostgreSQLURL) (err error) {
 	return
 }
 
-
-
 func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
 	ip := net.JoinHostPort(url.Host, strconv.Itoa(int(url.Port)))
 	conn, err := net.DialTimeout("tcp", ip, time.Millisecond*2000)
@@ -96,10 +93,10 @@ func PingClickHouse(url *datasourcepb.ClickHouseURL) (err error) {
 	)
 
 	defer func() {
-		if rep!=nil {
+		if rep != nil {
 			_ = rep.Body.Close()
 		}
-		if client!=nil {
+		if client != nil {
 			client.CloseIdleConnections()
 		}
 	}()
@@ -165,16 +162,24 @@ func PingS3(url *model.S3Url) (err error) {
 */
 
 func PingHBase(url *datasourcepb.HBaseURL) (err error) {
-	var (
-		conn *zk.Conn
-	)
-
+	//var (
+	//	conn *zk.Conn
+	//)
 	hosts := strings.Split(url.Zookeeper, ",")
-	conn, _, err = zk.Connect(hosts, time.Millisecond*100)
-	if err == nil {
-		conn.Close()
+	for _, host := range hosts {
+		conn, err := net.DialTimeout("tcp", host, time.Millisecond*1000)
+		if err != nil {
+			return qerror.ConnectSourceFailed
+		} else if conn != nil {
+			_ = conn.Close()
+		}
 	}
-	return
+	return nil
+	//conn, _, err = zk.Connect(hosts, time.Millisecond*100)
+	//if err == nil {
+	//	conn.Close()
+	//}
+	//return
 }
 
 func PingFtp(url *datasourcepb.FtpURL) (err error) {

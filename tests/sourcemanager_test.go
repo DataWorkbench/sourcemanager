@@ -132,7 +132,7 @@ func mainInit(t *testing.T) {
 
 	// hbase
 	HbaseManager = request.CreateSource{SourceId: "som-00000000000hbase", SpaceId: spaceid, SourceType: model.DataSource_HBase, Name: "hbase",
-		Url: &datasourcepb.DataSourceURL{Hbase: &datasourcepb.HBaseURL{Zookeeper: "hbasez:2181", ZNode: "/hbase"}}}
+		Url: &datasourcepb.DataSourceURL{Hbase: &datasourcepb.HBaseURL{Zookeeper: "1.1.1.1:2181", ZNode: "/hbase"}}}
 	HbaseSource = request.CreateTable{TableId: "sot-0000hbase_source", SourceId: HbaseManager.SourceId, SpaceId: spaceid, Name: "hbases", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Hbase: &flinkpb.HBaseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "rowkey", Type: "string", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "columna", Type: "ROW<a STRING>", Comment: "xxx", PrimaryKey: "f"}}}}}
 	HbaseDest = request.CreateTable{TableId: "sot-000000hbase_dest", SourceId: HbaseManager.SourceId, SpaceId: spaceid, Name: "hbased", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Hbase: &flinkpb.HBaseTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "rowkey", Type: "string", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "columna", Type: "ROW<a STRING>", Comment: "xxx", PrimaryKey: "f"}}}}}
 
@@ -269,10 +269,10 @@ func Test_PingSource(t *testing.T) {
 	//_, err = client.PingSource(ctx, &p)
 	//require.NotNil(t, err, "%+v", err)
 
-	p.SourceType = ClickHouseManager.SourceType
-	p.Url = ClickHouseManager.Url
-	_, err = client.PingSource(ctx, &p)
-	require.Nil(t, err, "%+v", err)
+	//p.SourceType = ClickHouseManager.SourceType
+	//p.Url = ClickHouseManager.Url
+	//_, err = client.PingSource(ctx, &p)
+	//require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = KafkaManager.SourceType
 	//p.Url = KafkaManager.Url
@@ -284,10 +284,10 @@ func Test_PingSource(t *testing.T) {
 	//_, err = client.PingSource(ctx, &p)
 	//require.NotNil(t, err, "%+v", err)
 
-	//p.SourceType = HbaseManager.SourceType
-	//p.Url = HbaseManager.Url
-	//_, err = client.PingSource(ctx, &p)
-	//require.Nil(t, err, "%+v", err)
+	p.SourceType = HbaseManager.SourceType
+	p.Url = HbaseManager.Url
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = FtpManager.SourceType
 	//p.Url = FtpManager.Url

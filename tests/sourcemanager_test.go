@@ -126,7 +126,7 @@ func mainInit(t *testing.T) {
 
 	// hdfs
 	HDFSManager = request.CreateSource{SourceId: "som-000000000000hdfs", SpaceId: spaceid, SourceType: model.DataSource_HDFS, Name: "hdfs",
-		Url: &datasourcepb.DataSourceURL{Hdfs: &datasourcepb.HDFSURL{Nodes: &datasourcepb.HDFSURL_HDFSNodeURL{NameNode: "hadoop", Port: 9000}}}}
+		Url: &datasourcepb.DataSourceURL{Hdfs: &datasourcepb.HDFSURL{Nodes: &datasourcepb.HDFSURL_HDFSNodeURL{NameNode: "139.198.42.56", Port: 11006}}}}
 	HDFSSource = request.CreateTable{TableId: "sot-00000hdfs_source", SourceId: HDFSManager.SourceId, SpaceId: spaceid, Name: "hdfss", Comment: "", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Hdfs: &flinkpb.HDFSTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}, Format: "json", Path: "test/source"}}}
 	HDFSDest = request.CreateTable{TableId: "sot-0000000hdfs_dest", SourceId: HDFSManager.SourceId, SpaceId: spaceid, Name: "hdfsd", Comment: "", TableKind: model.TableInfo_Source, TableSchema: &flinkpb.TableSchema{Hdfs: &flinkpb.HDFSTable{SqlColumn: []*flinkpb.SqlColumnType{&flinkpb.SqlColumnType{Column: "id", Type: "bigint", PrimaryKey: "f"}, &flinkpb.SqlColumnType{Column: "id1", Type: "bigint", Comment: "xxx", PrimaryKey: "f"}}, Format: "json", Path: "dest"}}}
 
@@ -284,20 +284,20 @@ func Test_PingSource(t *testing.T) {
 	//_, err = client.PingSource(ctx, &p)
 	//require.NotNil(t, err, "%+v", err)
 
-	p.SourceType = HbaseManager.SourceType
-	p.Url = HbaseManager.Url
-	_, err = client.PingSource(ctx, &p)
-	require.Nil(t, err, "%+v", err)
+	//p.SourceType = HbaseManager.SourceType
+	//p.Url = HbaseManager.Url
+	//_, err = client.PingSource(ctx, &p)
+	//require.Nil(t, err, "%+v", err)
 
 	//p.SourceType = FtpManager.SourceType
 	//p.Url = FtpManager.Url
 	//_, err = client.PingSource(ctx, &p)
 	//require.Nil(t, err, "%+v", err)
 
-	//p.SourceType = HDFSManager.SourceType
-	//p.Url = HDFSManager.Url
-	//_, err = client.PingSource(ctx, &p)
-	//require.Nil(t, err, "%+v", err)
+	p.SourceType = HDFSManager.SourceType
+	p.Url = HDFSManager.Url
+	_, err = client.PingSource(ctx, &p)
+	require.Nil(t, err, "%+v", err)
 }
 
 func Test_DisableSource(t *testing.T) {

@@ -713,7 +713,7 @@ func (ex *SourcemanagerExecutor) List(ctx context.Context, input *request.ListSo
 
 	order := input.SortBy
 	if order == "" {
-		order = "updated"
+		order = "created"
 	}
 	if input.Reverse {
 		order += " DESC"

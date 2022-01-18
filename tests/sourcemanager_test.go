@@ -269,7 +269,9 @@ func Test_PingSource(t *testing.T) {
 	//_, err = client.PingSource(ctx, &p)
 	//require.NotNil(t, err, "%+v", err)
 
-	//p.SourceType = ClickHouseManager.SourceType
+	//p.SourceType = Cl	k
+	//
+	//ickHouseManager.SourceType
 	//p.Url = ClickHouseManager.Url
 	//_, err = client.PingSource(ctx, &p)
 	//require.Nil(t, err, "%+v", err)

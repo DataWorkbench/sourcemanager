@@ -3,9 +3,6 @@ package executor
 import (
 	"context"
 	"fmt"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"io"
 	"io/ioutil"
 	"net"
@@ -14,12 +11,17 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
 	"github.com/DataWorkbench/common/qerror"
 	"github.com/DataWorkbench/gproto/pkg/datasourcepb"
 	"github.com/DataWorkbench/gproto/pkg/model"
 	"github.com/Shopify/sarama"
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/dutchcoders/goftp"
+	"github.com/samuel/go-zookeeper/zk"
 )
 
 func PingMysql(url *datasourcepb.MySQLURL) (err error) {
@@ -162,17 +164,14 @@ func PingS3(url *model.S3Url) (err error) {
 */
 
 func PingHBase(url *datasourcepb.HBaseURL) (err error) {
-	//var (
-	//	conn *zk.Conn
-	//)
-	hosts := strings.Split(url.Zookeeper, ",")
-	for _, host := range hosts {
-		conn, err := net.DialTimeout("tcp", host, time.Millisecond*1000)
-		if err != nil {
-			return qerror.ConnectSourceFailed
-		} else if conn != nil {
-			_ = conn.Close()
-		}
+	var (
+		conn *zk.Conn
+	)
+
+	hosts := strings.Split(url.ZkHosts, ",")
+	conn, _, err = zk.Connect(hosts, time.Millisecond*100)
+	if err == nil {
+		conn.Close()
 	}
 	return nil
 	//conn, _, err = zk.Connect(hosts, time.Millisecond*100)
@@ -210,37 +209,37 @@ func PingHDFS(url *datasourcepb.HDFSURL) (err error) {
 	return qerror.ConnectSourceFailed
 }
 
-func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype model.DataSource_Type, url *datasourcepb.DataSourceURL) (err error) {
-	if err = ex.checkSourceInfo(url, sourcetype); err != nil {
-		return
-	}
-
-	if sourcetype == model.DataSource_MySQL {
-		err = PingMysql(url.GetMysql())
-	} else if sourcetype == model.DataSource_PostgreSQL {
-		err = PingPostgreSQL(url.GetPostgresql())
-	} else if sourcetype == model.DataSource_Kafka {
-		err = PingKafka(url.GetKafka())
-	} else if sourcetype == model.DataSource_S3 {
-		//err = PingS3(url.GetS3())
-		ex.logger.Error().String("don't support this source type ", sourcetype.String()).Fire()
-		err = qerror.ConnectSourceFailed
-	} else if sourcetype == model.DataSource_ClickHouse {
-		err = PingClickHouse(url.GetClickhouse())
-	} else if sourcetype == model.DataSource_HBase {
-		err = PingHBase(url.GetHbase())
-	} else if sourcetype == model.DataSource_Ftp {
-		err = PingFtp(url.GetFtp())
-	} else if sourcetype == model.DataSource_HDFS {
-		err = PingHDFS(url.GetHdfs())
-	} else {
-		ex.logger.Error().String("don't support this source type ", sourcetype.String()).Fire()
-		err = qerror.NotSupportSourceType.Format(sourcetype)
-	}
-	if err != nil {
-		ex.logger.Error().Error("connect source failed", err).Fire()
-		err = qerror.ConnectSourceFailed.Format(err)
-	}
+func (ex *SourcemanagerExecutor) PingSource(ctx context.Context, sourcetype model.DataSource_Type, url *model.DataSource_URL) (err error) {
+	//if err = ex.checkSourceInfo(url, sourcetype); err != nil {
+	//	return
+	//}
+	//
+	//if sourcetype == model.DataSource_MySQL {
+	//	err = PingMysql(url.GetMysql())
+	//} else if sourcetype == model.DataSource_PostgreSQL {
+	//	err = PingPostgreSQL(url.GetPostgresql())
+	//} else if sourcetype == model.DataSource_Kafka {
+	//	err = PingKafka(url.GetKafka())
+	//} else if sourcetype == model.DataSource_S3 {
+	//	//err = PingS3(url.GetS3())
+	//	ex.logger.Error().String("don't support this source type ", sourcetype.String()).Fire()
+	//	err = qerror.ConnectSourceFailed
+	//} else if sourcetype == model.DataSource_ClickHouse {
+	//	err = PingClickHouse(url.GetClickhouse())
+	//} else if sourcetype == model.DataSource_HBase {
+	//	err = PingHBase(url.GetHbase())
+	//} else if sourcetype == model.DataSource_Ftp {
+	//	err = PingFtp(url.GetFtp())
+	//} else if sourcetype == model.DataSource_HDFS {
+	//	err = PingHDFS(url.GetHdfs())
+	//} else {
+	//	ex.logger.Error().String("don't support this source type ", sourcetype.String()).Fire()
+	//	err = qerror.NotSupportSourceType.Format(sourcetype)
+	//}
+	//if err != nil {
+	//	ex.logger.Error().Error("connect source failed", err).Fire()
+	//	err = qerror.ConnectSourceFailed.Format(err)
+	//}
 
 	return
 }

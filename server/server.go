@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/DataWorkbench/common/gtrace"
+	"github.com/DataWorkbench/gproto/pkg/enginepb"
+	"github.com/DataWorkbench/sourcemanager/handler"
 
 	"github.com/DataWorkbench/common/gormwrap"
 	"github.com/DataWorkbench/common/utils/buildinfo"
@@ -83,6 +85,9 @@ func Start() (err error) {
 	if err != nil {
 		return
 	}
+
+	handler.Init(handler.WithDBConn(db))
+	handler.EngineClient = enginepb.NewEngineClient(engineManagerConn)
 
 	// init grpc.Server
 	rpcServer, err = grpcwrap.NewServer(ctx, cfg.GRPCServer)

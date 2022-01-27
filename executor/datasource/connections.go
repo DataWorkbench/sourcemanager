@@ -78,6 +78,7 @@ func DescribeLastConnection(tx *gorm.DB, sourceId string) (info *model.DataSourc
 		Take(info).Order("created DESC").
 		Error
 	if err != nil {
+		info = nil
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = nil
 		}

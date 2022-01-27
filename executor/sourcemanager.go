@@ -44,7 +44,7 @@ type SourcemanagerExecutor struct {
 func NewSourceManagerExecutor(db *gorm.DB, l *glog.Logger, eClient EngineClient) *SourcemanagerExecutor {
 	ex := &SourcemanagerExecutor{
 		db:               db,
-		idGenerator:      idgenerator.New(constants.SourceManagerIDPrefix),
+		idGenerator:      idgenerator.New(constants.IdPrefixDatasource),
 		idGeneratorTable: idgenerator.New(constants.SourceTablesIDPrefix),
 		logger:           l,
 		engineClient:     eClient,

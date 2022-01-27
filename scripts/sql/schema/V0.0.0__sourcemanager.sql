@@ -7,7 +7,9 @@ create table if not exists data_source (
     `id` CHAR(20) NOT NULL,
 
     -- unique in a workspace.
-    `name` varchar(64) NOT NULL,
+    -- The max length of use set is 64. The system will be auto rename to <name>.<id> when deleted.
+    -- Thus the VARCHAR should be define as 89 (64 + 24 + 1)
+    `name` VARCHAR(89) NOT NULL,
 
     -- DataSource description.
     `desc` varchar(256),
@@ -31,7 +33,7 @@ create table if not exists data_source (
     `updated` BIGINT(20) UNSIGNED NOT NULL,
 
     PRIMARY KEY (`id`),
-    INDEX mul_list_record_by_space_id(`space_id`)
+    UNIQUE KEY unique_source_name (`space_id`, `name`)
 ) ENGINE=InnoDB COMMENT='The data source info';
 
 create table if not exists data_source_connection (

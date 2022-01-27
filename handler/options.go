@@ -25,7 +25,7 @@ func WithDBConn(conn *gorm.DB) Option {
 }
 
 func initIdGenerator() {
-	datasourceIdGenerator = idgenerator.New(constants.SourceManagerIDPrefix)
+	datasourceIdGenerator = idgenerator.New(constants.IdPrefixDatasource)
 }
 
 func Init(opts ...Option) {

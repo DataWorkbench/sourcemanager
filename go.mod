@@ -3,7 +3,7 @@ module github.com/DataWorkbench/sourcemanager
 go 1.15
 
 require (
-	github.com/DataWorkbench/common v0.0.0-20220124155225-68cc225bbfaa
+	github.com/DataWorkbench/common v0.0.0-20220127032908-c02e748bba1f
 	github.com/DataWorkbench/glog v0.0.0-20211116140154-21c3eb33cc6d
 	github.com/DataWorkbench/gproto v0.0.0-20220125061311-488ad2a726d4
 	github.com/DataWorkbench/loader v0.0.0-20210808061751-6e1ba7df5cdd
